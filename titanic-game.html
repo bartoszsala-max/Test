@@ -135,7 +135,6 @@ canvas.addEventListener('touchmove', e => {
   ship.relY += dy / H();
   e.preventDefault();
 }, { passive: false });
-canvas.addEventListener('touchend', () => { lastTouchY = null; });
 
 // On-screen buttons
 const btnUp   = document.getElementById('btn-up');
@@ -151,16 +150,31 @@ btnDown.addEventListener('pointerup',   () => holdEnd('down'));
 btnDown.addEventListener('pointerleave',() => holdEnd('down'));
 
 // Canvas click — for Start / Game-Over buttons
-canvas.addEventListener('click', e => {
+function checkButtonTap(cx, cy) {
   if (state !== 'start' && state !== 'gameover') return;
-  const rect = canvas.getBoundingClientRect();
-  const cx = (e.clientX - rect.left) * (W() / rect.width);
-  const cy = (e.clientY - rect.top)  * (H() / rect.height);
-  const btnX = W() / 2, btnY = H() * 0.76;
-  const bw = W() * 0.28, bh = H() * 0.10;
+  const btnX = W() / 2;
+  const btnY = state === 'start' ? H() * 0.64 : H() * 0.68;
+  const bw   = state === 'start' ? W() * 0.28 : W() * 0.34;
+  const bh   = H() * 0.11;
   if (Math.abs(cx - btnX) < bw / 2 && Math.abs(cy - btnY) < bh / 2) {
     startGame();
   }
+}
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  checkButtonTap(
+    (e.clientX - rect.left) * (W() / rect.width),
+    (e.clientY - rect.top)  * (H() / rect.height)
+  );
+});
+canvas.addEventListener('touchend', e => {
+  lastTouchY = null;
+  const touch = e.changedTouches[0];
+  const rect = canvas.getBoundingClientRect();
+  checkButtonTap(
+    (touch.clientX - rect.left) * (W() / rect.width),
+    (touch.clientY - rect.top)  * (H() / rect.height)
+  );
 });
 
 // ─── Game Logic ──────────────────────────────────────────────────────────────
