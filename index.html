@@ -150,11 +150,16 @@ const keys = {};
 document.addEventListener('keydown', e => { keys[e.key] = true; });
 document.addEventListener('keyup',   e => { keys[e.key] = false; });
 
-// Touch drag on canvas
+// Touch handling on canvas
 let lastTouchY = null;
 canvas.addEventListener('touchstart', e => {
-  lastTouchY = e.touches[0].clientY;
   e.preventDefault();
+  // Start/restart the game on any tap during start or gameover
+  if (state === 'start' || state === 'gameover') {
+    startGame();
+    return;
+  }
+  lastTouchY = e.touches[0].clientY;
 }, { passive: false });
 canvas.addEventListener('touchmove', e => {
   if (lastTouchY === null) return;
@@ -163,6 +168,7 @@ canvas.addEventListener('touchmove', e => {
   ship.relY += dy / H();
   e.preventDefault();
 }, { passive: false });
+canvas.addEventListener('touchend', () => { lastTouchY = null; });
 
 // On-screen buttons
 const btnUp   = document.getElementById('btn-up');
@@ -177,14 +183,9 @@ btnDown.addEventListener('pointerdown', () => holdStart('down'));
 btnDown.addEventListener('pointerup',   () => holdEnd('down'));
 btnDown.addEventListener('pointerleave',() => holdEnd('down'));
 
-// Canvas tap/click — anywhere on canvas starts/restarts the game
-function handleCanvasTap() {
+// Mouse click — start/restart on desktop
+canvas.addEventListener('click', () => {
   if (state === 'start' || state === 'gameover') startGame();
-}
-canvas.addEventListener('click', handleCanvasTap);
-canvas.addEventListener('touchend', e => {
-  lastTouchY = null;
-  handleCanvasTap();
 });
 
 // ─── Game Logic ──────────────────────────────────────────────────────────────
