@@ -177,32 +177,14 @@ btnDown.addEventListener('pointerdown', () => holdStart('down'));
 btnDown.addEventListener('pointerup',   () => holdEnd('down'));
 btnDown.addEventListener('pointerleave',() => holdEnd('down'));
 
-// Canvas click — for Start / Game-Over buttons
-function checkButtonTap(cx, cy) {
-  if (state !== 'start' && state !== 'gameover') return;
-  const btnX = W() / 2;
-  const btnY = state === 'start' ? H() * 0.64 : H() * 0.68;
-  const bw   = state === 'start' ? W() * 0.28 : W() * 0.34;
-  const bh   = H() * 0.11;
-  if (Math.abs(cx - btnX) < bw / 2 && Math.abs(cy - btnY) < bh / 2) {
-    startGame();
-  }
+// Canvas tap/click — anywhere on canvas starts/restarts the game
+function handleCanvasTap() {
+  if (state === 'start' || state === 'gameover') startGame();
 }
-canvas.addEventListener('click', e => {
-  const rect = canvas.getBoundingClientRect();
-  checkButtonTap(
-    (e.clientX - rect.left) * (W() / rect.width),
-    (e.clientY - rect.top)  * (H() / rect.height)
-  );
-});
+canvas.addEventListener('click', handleCanvasTap);
 canvas.addEventListener('touchend', e => {
   lastTouchY = null;
-  const touch = e.changedTouches[0];
-  const rect = canvas.getBoundingClientRect();
-  checkButtonTap(
-    (touch.clientX - rect.left) * (W() / rect.width),
-    (touch.clientY - rect.top)  * (H() / rect.height)
-  );
+  handleCanvasTap();
 });
 
 // ─── Game Logic ──────────────────────────────────────────────────────────────
@@ -600,11 +582,19 @@ function drawStartScreen() {
   // Instruction icons
   ctx.fillStyle = '#aaccee';
   ctx.font      = `${Math.round(h * 0.037)}px Arial`;
-  ctx.fillText('⬆ ⬇  Arrow keys  •  Drag on iPad', w / 2, h * 0.47);
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Arrow keys or drag to move', w / 2, h * 0.47);
 
-  // Play button
-  const bw = w * 0.28, bh = h * 0.11;
-  drawButton('🚢  PLAY!', w / 2, h * 0.64, bw, bh, '#2ecc71', '#1a8f4f');
+  // Play button — solid green, no gradient or emoji
+  const bw = w * 0.38, bh = h * 0.13;
+  const bx = w / 2 - bw / 2, by = h * 0.60;
+  ctx.fillStyle = '#27ae60';
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = `bold ${Math.round(bh * 0.52)}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.fillText('TAP TO PLAY', w / 2, by + bh / 2);
+  ctx.textBaseline = 'alphabetic';
 }
 
 function drawGameOver() {
@@ -619,20 +609,28 @@ function drawGameOver() {
   ctx.font      = `bold ${Math.round(h * 0.09)}px Arial`;
   ctx.shadowColor = '#ff0000';
   ctx.shadowBlur  = 20;
-  ctx.fillText('Oh no! 🧊', w / 2, h * 0.22);
+  ctx.fillText('Oh no!', w / 2, h * 0.22);
   ctx.shadowBlur = 0;
 
   ctx.fillStyle = '#fffde7';
   ctx.font      = `${Math.round(h * 0.048)}px Arial`;
+  ctx.textBaseline = 'middle';
   ctx.fillText('The Titanic hit an iceberg!', w / 2, h * 0.36);
 
   ctx.fillStyle = '#7fc8ff';
   ctx.font      = `bold ${Math.round(h * 0.065)}px Arial`;
-  ctx.fillText(`⭐  Score: ${score}`, w / 2, h * 0.50);
+  ctx.fillText('Score: ' + score, w / 2, h * 0.50);
 
-  // Play Again button
-  const bw = w * 0.34, bh = h * 0.11;
-  drawButton('Play Again! 🚢', w / 2, h * 0.68, bw, bh, '#2196f3', '#0d47a1');
+  // Play Again button — solid blue, no gradient or emoji
+  const bw = w * 0.42, bh = h * 0.13;
+  const bx = w / 2 - bw / 2, by = h * 0.63;
+  ctx.fillStyle = '#2980b9';
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = `bold ${Math.round(bh * 0.52)}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.fillText('TAP TO PLAY AGAIN', w / 2, by + bh / 2);
+  ctx.textBaseline = 'alphabetic';
 }
 
 // ─── Main Loop ───────────────────────────────────────────────────────────────
