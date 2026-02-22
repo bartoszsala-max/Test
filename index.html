@@ -101,17 +101,18 @@ const ctx    = canvas.getContext('2d');
 
 function resize() {
   const aspect = 16 / 9;
-  let w = window.innerWidth  * 0.97;
-  let h = window.innerHeight * 0.97;
+  let w = Math.max(window.innerWidth,  screen.availWidth)  * 0.97;
+  let h = Math.max(window.innerHeight, screen.availHeight) * 0.97;
   if (w / h > aspect) w = h * aspect;
   else                 h = w / aspect;
-  canvas.width  = Math.floor(w);
-  canvas.height = Math.floor(h);
-  // Rebuild stars so they cover the new size
+  canvas.width  = Math.max(1, Math.floor(w));
+  canvas.height = Math.max(1, Math.floor(h));
   buildStars();
 }
 window.addEventListener('resize', resize);
 resize();
+// Re-measure after full load in case the browser reported wrong dimensions
+window.addEventListener('load', () => { resize(); if (!loopStarted) { loopStarted = true; loop(); } });
 
 const W = () => canvas.width;
 const H = () => canvas.height;
@@ -528,7 +529,7 @@ function drawHUD() {
   ctx.fillStyle = '#fffde7';
   ctx.font = `bold ${Math.round(h * 0.047)}px Arial`;
   ctx.textAlign = 'left';
-  ctx.fillText(`⭐ ${score}`, w * 0.03, h * 0.083);
+  ctx.fillText('Score: ' + score, w * 0.03, h * 0.083);
 
   // Lives
   const heartSize = h * 0.028;
@@ -658,11 +659,24 @@ function draw() {
   }
 }
 
+let loopStarted = false;
 function loop() {
-  update();
-  draw();
-  requestAnimationFrame(loop);
+  requestAnimationFrame(loop); // Schedule next frame FIRST so errors can't kill the loop
+  try { update(); } catch(e) {}
+  try { draw();   } catch(e) {
+    // Fallback: draw a simple start screen if canvas rendering fails
+    try {
+      ctx.fillStyle = '#0a1a35';
+      ctx.fillRect(0, 0, W(), H());
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 28px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('TAP TO PLAY', W() / 2, H() / 2);
+    } catch(e2) {}
+  }
 }
+loopStarted = true;
 loop();
 </script>
 </body>
