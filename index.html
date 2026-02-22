@@ -249,22 +249,19 @@ function showPlaying() {
   hudEl.style.display          = 'block';
 }
 
-let _starting = false;
 function doStart() {
-  if (_starting) return;
-  _starting = true;
-  setTimeout(() => { _starting = false; }, 400);
+  if (state === 'playing') return;
   showPlaying();
   startGame();
 }
 
-// Single, clean handler: touchend for iOS Safari, click for desktop.
-// touchend fires after the finger lifts, which is reliable on all iOS versions.
-['btn-play', 'btn-restart'].forEach(id => {
-  const el = document.getElementById(id);
-  el.addEventListener('click', doStart);
-  el.addEventListener('touchend', e => { e.preventDefault(); doStart(); }, { passive: false });
-});
+// Any click anywhere starts the game when not already playing (desktop + Android Chrome)
+document.addEventListener('click', doStart);
+
+// touchend for iOS Safari — preventDefault stops the duplicate synthesized click
+document.addEventListener('touchend', e => {
+  if (state !== 'playing') { e.preventDefault(); doStart(); }
+}, { passive: false });
 
 // ─── Input ───────────────────────────────────────────────────────────────────
 const keys = {};
