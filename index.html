@@ -55,15 +55,43 @@
     @media (hover: none) and (pointer: coarse) {
       #touch-controls { display: flex; }
     }
+    /* Portrait orientation: hide game, show rotate prompt */
+    #rotate-msg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #060d1f;
+      z-index: 200;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #7fc8ff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+    #rotate-msg .icon { font-size: 80px; margin-bottom: 24px; }
+    #rotate-msg h2 { font-size: 26px; color: #fffde7; margin-bottom: 12px; }
+    #rotate-msg p  { font-size: 18px; }
+    @media (orientation: portrait) {
+      #rotate-msg { display: flex; }
+    }
   </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 
+<!-- Rotate prompt for portrait screens -->
+<div id="rotate-msg">
+  <div class="icon">&#x21BB;</div>
+  <h2>Rotate your device!</h2>
+  <p>Titanic Adventure! plays in landscape mode.</p>
+</div>
+
 <!-- Touch controls shown on touch devices -->
 <div id="touch-controls">
-  <button class="ctrl-btn" id="btn-up">⬆</button>
-  <button class="ctrl-btn" id="btn-down">⬇</button>
+  <button class="ctrl-btn" id="btn-up">&#x2B06;</button>
+  <button class="ctrl-btn" id="btn-down">&#x2B07;</button>
 </div>
 
 <script>
