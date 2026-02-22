@@ -183,6 +183,10 @@
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
 
+// Hide HTML overlay screens immediately — canvas draws all UI
+document.getElementById('screen-start').style.display    = 'none';
+document.getElementById('screen-gameover').style.display = 'none';
+
 function resize() {
   const aspect = 16 / 9;
   let w = Math.max(window.innerWidth,  320) * 0.97;
@@ -232,22 +236,8 @@ const hudScore       = document.getElementById('hud-score');
 const hudLives       = document.getElementById('hud-lives');
 const finalScoreEl   = document.getElementById('final-score');
 
-function showStart() {
-  screenStart.style.display    = 'flex';
-  screenGameover.style.display = 'none';
-  hudEl.style.display          = 'none';
-}
-function showGameover() {
-  finalScoreEl.textContent     = 'Score: ' + score;
-  screenGameover.style.display = 'flex';
-  screenStart.style.display    = 'none';
-  hudEl.style.display          = 'none';
-}
-function showPlaying() {
-  screenStart.style.display    = 'none';
-  screenGameover.style.display = 'none';
-  hudEl.style.display          = 'block';
-}
+function showGameover() { hudEl.style.display = 'none'; }
+function showPlaying()  { hudEl.style.display = 'block'; }
 
 function doStart() {
   if (state === 'playing') return;
@@ -533,14 +523,51 @@ function drawIceberg(relX, relY, relSize) {
   ctx.restore();
 }
 
+function drawScreenOverlay(lines) {
+  const w = W(), h = H();
+  ctx.save();
+  ctx.fillStyle = 'rgba(6,13,31,0.88)';
+  ctx.fillRect(0, 0, w, h);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  lines.forEach(({ text, color, size, shadow, y }) => {
+    ctx.font = `bold ${Math.floor(h * size)}px Arial`;
+    ctx.fillStyle = color;
+    ctx.shadowColor = shadow || 'transparent';
+    ctx.shadowBlur  = shadow ? 22 : 0;
+    ctx.fillText(text, w / 2, h * y);
+  });
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
 // ─── Main Loop ───────────────────────────────────────────────────────────────
 function draw() {
   const w = W(), h = H();
   ctx.clearRect(0, 0, w, h);
   drawBackground();
+
+  if (state === 'start') {
+    drawTitanic(w * 0.16, h * ship.relY);
+    drawScreenOverlay([
+      { text: 'Titanic Adventure!',           color: '#fffde7', size: 0.09,  shadow: '#ffe066', y: 0.32 },
+      { text: 'Dodge the icebergs to survive!', color: '#7fc8ff', size: 0.05,  y: 0.50 },
+      { text: 'Tap or click anywhere to play', color: '#aaccee', size: 0.038, y: 0.64 },
+    ]);
+    return;
+  }
+
   icebergs.forEach(ic => drawIceberg(ic.relX, ic.relY, ic.size));
   if (invincible <= 0 || Math.floor(invincible / 10) % 2 === 0) {
     drawTitanic(w * 0.16, h * ship.relY);
+  }
+
+  if (state === 'gameover') {
+    drawScreenOverlay([
+      { text: 'Game Over!',                    color: '#ff6b6b', size: 0.1,   shadow: '#ff0000', y: 0.30 },
+      { text: 'Score: ' + score,               color: '#7fc8ff', size: 0.065, y: 0.48 },
+      { text: 'Tap or click anywhere to restart', color: '#aaccee', size: 0.038, y: 0.64 },
+    ]);
   }
 }
 
