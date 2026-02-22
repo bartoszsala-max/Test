@@ -39,6 +39,7 @@
       gap: 18px;
       z-index: 50;
       color: white;
+      cursor: pointer;
     }
     .game-screen h1 {
       font-size: clamp(1.8em, 6vw, 3em);
@@ -146,19 +147,19 @@
 <canvas id="c"></canvas>
 
 <!-- ── HTML Start Screen ─────────────────────────────────────── -->
-<div id="screen-start" class="game-screen" onclick="doStart()">
+<div id="screen-start" class="game-screen">
   <h1>Titanic Adventure!</h1>
   <p class="sub">Dodge the icebergs to survive!</p>
   <p class="hint">Arrow keys &bull; Drag &bull; Use buttons below</p>
-  <button class="play-btn" id="btn-play" onclick="doStart()">PLAY</button>
+  <button class="play-btn" id="btn-play">PLAY</button>
 </div>
 
 <!-- ── HTML Game Over Screen ─────────────────────────────────── -->
-<div id="screen-gameover" class="game-screen" onclick="doStart()">
+<div id="screen-gameover" class="game-screen">
   <h1>Game Over!</h1>
   <p class="sub">The Titanic hit an iceberg!</p>
   <p class="big-score" id="final-score">Score: 0</p>
-  <button class="play-btn" id="btn-restart" onclick="doStart()">PLAY AGAIN</button>
+  <button class="play-btn" id="btn-restart">PLAY AGAIN</button>
 </div>
 
 <!-- ── Score / Lives HUD ─────────────────────────────────────── -->
@@ -248,18 +249,21 @@ function showPlaying() {
   hudEl.style.display          = 'block';
 }
 
-function doStart() { showPlaying(); startGame(); }
+let _starting = false;
+function doStart() {
+  if (_starting) return;
+  _starting = true;
+  setTimeout(() => { _starting = false; }, 400);
+  showPlaying();
+  startGame();
+}
 
-// onclick is already set in HTML; these listeners catch touch events that onclick might miss on iOS
+// Single, clean handler: touchend for iOS Safari, click for desktop.
+// touchend fires after the finger lifts, which is reliable on all iOS versions.
 ['btn-play', 'btn-restart'].forEach(id => {
   const el = document.getElementById(id);
   el.addEventListener('click', doStart);
-  el.addEventListener('touchstart', e => { e.preventDefault(); doStart(); }, { passive: false });
-});
-['screen-start', 'screen-gameover'].forEach(id => {
-  document.getElementById(id).addEventListener('touchstart', e => {
-    e.preventDefault(); doStart();
-  }, { passive: false });
+  el.addEventListener('touchend', e => { e.preventDefault(); doStart(); }, { passive: false });
 });
 
 // ─── Input ───────────────────────────────────────────────────────────────────
@@ -545,8 +549,8 @@ function draw() {
 
 function loop() {
   requestAnimationFrame(loop);
-  try { update(); } catch(e) {}
-  try { draw();   } catch(e) {}
+  update();
+  draw();
 }
 loop();
 </script>
