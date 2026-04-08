@@ -292,6 +292,45 @@
         .action-btn-preview { border-color: #7c3aed; color: #7c3aed; background: #faf5ff; }
         .action-btn-pdf     { border-color: var(--green); color: var(--green); background: var(--green-light); }
 
+        /* ── SYNC BAR ── */
+        .sync-bar {
+            display: flex;
+            gap: 10px;
+            padding: 8px 18px 10px;
+            background: #fffbeb;
+            border-bottom: 2px solid #fde68a;
+        }
+        .sync-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #92400e;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 6px;
+        }
+        .sync-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 6px;
+            border-radius: 10px;
+            border: 2px solid #fcd34d;
+            background: white;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: #92400e;
+        }
+        .sync-btn:active { transform: scale(0.96); background: #fffbeb; }
+        .sync-btn-export { border-color: #f59e0b; color: #b45309; }
+        .sync-btn-import { border-color: #10b981; color: #065f46; background: #f0fdf4; border-color: #6ee7b7; }
+
         /* ── MODAL ── */
         .modal-overlay {
             position: fixed;
@@ -592,6 +631,22 @@
         <button class="day-tab" id="tab3" onclick="selectDay(3)">
             Dzień 3<span class="tab-count" id="cnt3">– wpisów</span>
         </button>
+    </div>
+
+    <!-- SYNC BAR -->
+    <div class="sync-bar">
+        <div style="width:100%">
+            <div class="sync-label">🔄 Synchronizacja między urządzeniami</div>
+            <div style="display:flex;gap:10px">
+                <button class="sync-btn sync-btn-export" onclick="exportData()">
+                    ⬇️ Zapisz dane
+                </button>
+                <button class="sync-btn sync-btn-import" onclick="document.getElementById('importFile').click()">
+                    ⬆️ Wczytaj dane
+                </button>
+                <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
+            </div>
+        </div>
     </div>
 
     <!-- ACTION BAR -->
@@ -1180,6 +1235,41 @@ function exportPDF() {
 
     const fname = `dzienniczek_mikcji_${(state.patientName||'pacjent').replace(/\s+/g,'_')}.pdf`;
     doc.save(fname);
+}
+
+// ── EXPORT / IMPORT ──────────────────────────────────────────────────────
+function exportData() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const name = (state.patientName || 'pacjent').replace(/\s+/g,'_');
+    a.href = url;
+    a.download = `mikcja_${name}_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importData(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const parsed = JSON.parse(e.target.result);
+            if (!parsed.days || !Array.isArray(parsed.days)) throw new Error('Nieprawidłowy format');
+            if (!confirm(`Wczytać dane dla pacjenta: "${parsed.patientName || '?'}"?\nZastąpi to obecne dane.`)) return;
+            state = parsed;
+            while (state.days.length < 3) state.days.push([]);
+            save();
+            document.getElementById('patientName').value = state.patientName || '';
+            render();
+            alert('Dane wczytane pomyślnie ✓');
+        } catch(err) {
+            alert('Błąd wczytywania pliku: ' + err.message);
+        }
+        input.value = '';
+    };
+    reader.readAsText(file);
 }
 
 // ── TABLE PREVIEW ────────────────────────────────────────────────────────
