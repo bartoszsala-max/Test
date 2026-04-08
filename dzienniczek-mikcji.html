@@ -1336,17 +1336,25 @@ function exportPDF() {
 }
 
 // ── FIREBASE / CLOUD SYNC ────────────────────────────────────────────────
+// Konfiguracja Firebase — wbudowana w aplikację (działa na każdym urządzeniu)
+const FIREBASE_CFG = {
+    apiKey: "AIzaSyD4YAczU6GSK5muYjmphj84yQjm0KSgmAY",
+    authDomain: "dziennik-8c3c4.firebaseapp.com",
+    databaseURL: "https://dziennik-8c3c4-default-rtdb.firebaseio.com",
+    projectId: "dziennik-8c3c4",
+    storageBucket: "dziennik-8c3c4.firebasestorage.app",
+    messagingSenderId: "801294066607",
+    appId: "1:801294066607:web:96f8cac94acede0335455a"
+};
+
 let fbDb = null;
 let fbAuth = null;
 let currentUser = null;
 let syncTimer = null;
 
 function initFirebase() {
-    const raw = localStorage.getItem('mikcja_fb_cfg');
-    if (!raw) { showLogin(); return; }
     try {
-        const cfg = JSON.parse(raw);
-        if (!firebase.apps.length) firebase.initializeApp(cfg);
+        if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CFG);
         fbAuth = firebase.auth();
         fbDb   = firebase.database();
         fbAuth.onAuthStateChanged(user => {
@@ -1360,6 +1368,7 @@ function initFirebase() {
             }
         });
     } catch(e) {
+        console.error('Firebase error:', e);
         showLogin();
     }
 }
@@ -1368,10 +1377,6 @@ function showLogin() {
     document.getElementById('loginOverlay').classList.remove('hidden');
     document.getElementById('headerUser').textContent = 'Dziennik oddawania moczu';
     setSyncDot('');
-    // automatycznie otwórz setup gdy brak konfiguracji
-    if (!localStorage.getItem('mikcja_fb_cfg')) {
-        setTimeout(() => openCloudSetup(), 200);
-    }
 }
 
 function switchAuthTab(tab) {
