@@ -220,6 +220,7 @@
         .badge-urge { background: var(--primary-light); color: var(--primary-dark); }
         .badge-urge-niekt { background: var(--red-light); color: var(--red); }
         .badge-leak { background: var(--amber-light); color: #92400e; }
+        .badge-night { background: #1e1b4b; color: #c7d2fe; }
 
         .entry-actions { display: flex; gap: 6px; }
         .btn-icon {
@@ -1048,6 +1049,15 @@
                    placeholder="0" min="0" max="9999" inputmode="numeric" />
         </div>
 
+        <!-- Night event -->
+        <div class="form-group">
+            <label class="field-label">Zdarzenie nocne</label>
+            <div class="seg-group" id="nightGroup">
+                <button type="button" class="seg-btn" data-val="obudzenie" onclick="pickNight('obudzenie')">🌙<small>Obudzenie</small></button>
+                <button type="button" class="seg-btn" data-val="sen"       onclick="pickNight('sen')">😴<small>Zaśnięcie</small></button>
+            </div>
+        </div>
+
         <!-- Urge -->
         <div class="form-group">
             <label class="field-label">Siła parcia na mocz</label>
@@ -1104,6 +1114,7 @@ let selHour = null;
 let selUrge = null;
 let selLeak = null;
 let selDrink = null;
+let selNight = null;
 
 // ── PERSISTENCE ─────────────────────────────────────────────────────────
 function load() {
@@ -1204,8 +1215,10 @@ function render() {
         const leakBadge = e.leak
             ? `<span class="badge badge-leak">Gubienie: ${leakLabel(e.leak)}</span>`
             : '';
-        const badges = (drinkBadge || urgeBadge || leakBadge)
-            ? `<div class="entry-badges">${drinkBadge}${urgeBadge}${leakBadge}</div>`
+        const nightBadge = e.night === 'obudzenie' ? `<span class="badge badge-night">🌙 Obudzenie</span>`
+            : e.night === 'sen' ? `<span class="badge badge-night">😴 Zaśnięcie</span>` : '';
+        const badges = (drinkBadge || urgeBadge || leakBadge || nightBadge)
+            ? `<div class="entry-badges">${nightBadge}${drinkBadge}${urgeBadge}${leakBadge}</div>`
             : '';
         return `
         <div class="entry-card${hasLeak ? ' has-leak' : ''}${typeClass ? ' ' + typeClass : ''}">
@@ -1317,8 +1330,15 @@ function pickDrink(v) {
     });
 }
 
+function pickNight(v) {
+    selNight = (selNight === v) ? null : v;
+    document.querySelectorAll('#nightGroup .seg-btn').forEach(b =>
+        b.classList.toggle('sel-urge', b.dataset.val === selNight)
+    );
+}
+
 function clearForm() {
-    selHour = null; selUrge = null; selLeak = null; selDrink = null;
+    selHour = null; selUrge = null; selLeak = null; selDrink = null; selNight = null;
     document.getElementById('inputTime').value = '';
     document.getElementById('inputFluids').value = '';
     document.getElementById('inputUrine').value = '';
@@ -1353,10 +1373,12 @@ function openEditModal(id) {
     selUrge = e.urge || null;
     selLeak = e.leak || null;
     selDrink = e.drink || null;
+    selNight = e.night || null;
     pickHour(e.hour);
     if (selUrge) pickUrge(selUrge);
     if (selLeak) pickLeak(selLeak);
     if (selDrink) pickDrink(selDrink);
+    if (selNight) pickNight(selNight);
     document.getElementById('modalOverlay').classList.remove('hidden');
     document.getElementById('modal').scrollTop = 0;
 }
@@ -1390,7 +1412,7 @@ function saveEntry() {
     if (editing) {
         const idx = days.findIndex(e => e.id === editing);
         if (idx !== -1) {
-            days[idx] = { ...days[idx], hour: selHour, fluids, urine, urge: selUrge, leak: selLeak, time, drink: selDrink };
+            days[idx] = { ...days[idx], hour: selHour, fluids, urine, urge: selUrge, leak: selLeak, time, drink: selDrink, night: selNight };
         }
     } else {
         if (!editing && !state.dayDates[curDay]) {
@@ -1399,7 +1421,7 @@ function saveEntry() {
         state.days[curDay].push({
             id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
             hour: selHour, fluids, urine,
-            urge: selUrge, leak: selLeak, time, drink: selDrink
+            urge: selUrge, leak: selLeak, time, drink: selDrink, night: selNight
         });
     }
 
