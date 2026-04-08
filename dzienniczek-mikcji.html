@@ -645,6 +645,92 @@
         .chart-wrap { position: relative; height: 200px; }
         .chart-empty { text-align: center; padding: 32px; font-size: 13px; color: var(--muted); }
         .chart-empty.hidden { display: none; }
+
+        /* ── THEME SWITCHER ── */
+        .theme-bar {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            padding: 10px 16px 18px;
+            display: none; gap: 8px;
+        }
+        .theme-bar.open { display: flex; }
+        .theme-opt {
+            flex: 1; padding: 12px 8px; border-radius: 14px; border: 2px solid var(--border);
+            background: white; cursor: pointer; text-align: center;
+            font-size: 12px; font-weight: 700; color: var(--text); transition: all 0.15s;
+        }
+        .theme-opt .th-preview {
+            height: 36px; border-radius: 8px; margin-bottom: 7px;
+        }
+        .theme-opt.active { border-color: var(--primary); }
+        .theme-btn {
+            position: fixed; bottom: 100px; right: 20px;
+            background: white; border: 1.5px solid var(--border);
+            border-radius: 12px; padding: 8px 12px;
+            font-size: 12px; font-weight: 700; color: var(--muted);
+            cursor: pointer; box-shadow: var(--shadow); z-index: 200;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        /* THEME: klinika (default) */
+        body.theme-klinika {
+            --primary: #2563eb; --primary-light: #eff6ff; --primary-dark: #1d4ed8;
+            --bg: #f0f4f8; --card: #ffffff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 14px rgba(0,0,0,0.05);
+        }
+        body.theme-klinika .header { background: linear-gradient(135deg,#1d4ed8,#2563eb,#3b82f6); }
+        body.theme-klinika .day-tab.active { background: linear-gradient(135deg,#2563eb,#3b82f6); }
+        body.theme-klinika .summary-card { background: linear-gradient(135deg,#1e40af,#2563eb,#3b82f6); }
+        body.theme-klinika .fab-add { background: linear-gradient(135deg,#2563eb,#3b82f6); }
+
+        /* THEME: noc */
+        body.theme-noc {
+            --primary: #58a6ff; --primary-light: rgba(88,166,255,0.1); --primary-dark: #1d6bfc;
+            --bg: #0d1117; --card: #161b22; --text: #e6edf3; --muted: #8b949e; --border: #30363d;
+            --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 14px rgba(0,0,0,0.2);
+            --green: #3fb950; --green-light: rgba(63,185,80,0.1);
+            --red: #f85149; --red-light: rgba(248,81,73,0.1);
+            --amber: #d29922; --amber-light: rgba(210,153,34,0.1);
+        }
+        body.theme-noc .header { background: #161b22; box-shadow: 0 1px 0 #30363d; }
+        body.theme-noc .header-title { color: #e6edf3; }
+        body.theme-noc .btn-reset { border-color: #30363d; color: #8b949e; background: transparent; }
+        body.theme-noc .day-tabs { background: #161b22; border-color: #30363d; }
+        body.theme-noc .day-tab { background: #0d1117; border-color: #30363d; color: #8b949e; }
+        body.theme-noc .day-tab.active { background: rgba(88,166,255,0.12); border-color: #1d6bfc; color: #58a6ff; box-shadow: none; }
+        body.theme-noc .patient-section { background: #161b22; border-color: #30363d; }
+        body.theme-noc .patient-input { color: #e6edf3; }
+        body.theme-noc .summary-card { background: linear-gradient(135deg,#0d1117,#161b22); border: 1px solid #30363d; box-shadow: none; }
+        body.theme-noc .summary-item { background: rgba(255,255,255,0.05); }
+        body.theme-noc .action-bar { background: #161b22; border-color: #30363d; }
+        body.theme-noc .action-btn { background: #21262d; border-color: #30363d; color: #8b949e; }
+        body.theme-noc .action-btn-preview { color: #a78bfa; border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.08); }
+        body.theme-noc .action-btn-pdf { color: #3fb950; border-color: rgba(63,185,80,0.3); background: rgba(63,185,80,0.08); }
+        body.theme-noc .entry-card { background: #161b22; border-left-color: #1d6bfc; }
+        body.theme-noc .entry-hour { background: rgba(88,166,255,0.1); }
+        body.theme-noc .entry-precise-time { color: #58a6ff; }
+        body.theme-noc .chart-card { background: #161b22; border: 1px solid #30363d; box-shadow: none; }
+        body.theme-noc .fab-add { background: linear-gradient(135deg,#1d6bfc,#0ea5e9); }
+        body.theme-noc .theme-btn { background: #161b22; border-color: #30363d; color: #8b949e; }
+        body.theme-noc .theme-bar { background: rgba(22,27,34,0.97); border-color: #30363d; }
+        body.theme-noc .theme-opt { background: #21262d; border-color: #30363d; color: #e6edf3; }
+
+        /* THEME: ocean */
+        body.theme-ocean {
+            --primary: #0284c7; --primary-light: #f0f9ff; --primary-dark: #0369a1;
+            --bg: #e8f4fd; --card: #ffffff; --text: #0c2340; --muted: #64748b; --border: #bae6fd;
+            --shadow: 0 2px 10px rgba(3,105,161,0.1), 0 4px 20px rgba(3,105,161,0.06);
+        }
+        body.theme-ocean .header { background: linear-gradient(135deg,#0369a1,#0284c7,#0ea5e9); }
+        body.theme-ocean .day-tab { border-color: #bae6fd; }
+        body.theme-ocean .day-tab.active { background: linear-gradient(135deg,#0369a1,#0ea5e9); border-color: #0284c7; }
+        body.theme-ocean .summary-card { background: linear-gradient(135deg,#0369a1,#0284c7,#0ea5e9); }
+        body.theme-ocean .action-btn-preview { color: #7c3aed; border-color: #ddd6fe; background: #faf5ff; }
+        body.theme-ocean .action-btn-pdf { color: #0d9488; border-color: #99f6e4; background: #f0fdfa; }
+        body.theme-ocean .entry-hour { background: #f0f9ff; }
+        body.theme-ocean .entry-precise-time { color: #0284c7; }
+        body.theme-ocean .fab-add { background: linear-gradient(135deg,#0369a1,#0ea5e9); box-shadow: 0 6px 24px rgba(3,105,161,0.45); }
     </style>
 </head>
 <body>
@@ -777,6 +863,23 @@
 <!-- FAB -->
 <div class="fab-container">
     <button class="fab fab-add" onclick="openAddModal()" title="Dodaj wpis">+</button>
+</div>
+
+<!-- THEME SWITCHER -->
+<button class="theme-btn" id="themeBtnToggle" onclick="toggleThemeBar()">🎨 Motyw</button>
+<div class="theme-bar" id="themeBar">
+    <button class="theme-opt active" id="th-klinika" onclick="setTheme('klinika')">
+        <div class="th-preview" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"></div>
+        Klinika
+    </button>
+    <button class="theme-opt" id="th-noc" onclick="setTheme('noc')">
+        <div class="th-preview" style="background:linear-gradient(135deg,#0d1117,#161b22);border:1px solid #30363d"></div>
+        Noc
+    </button>
+    <button class="theme-opt" id="th-ocean" onclick="setTheme('ocean')">
+        <div class="th-preview" style="background:linear-gradient(135deg,#0369a1,#0ea5e9)"></div>
+        Ocean
+    </button>
 </div>
 
 <!-- TABLE PREVIEW OVERLAY -->
@@ -1522,6 +1625,28 @@ function authErrMsg(code) {
     })[code] || ('Błąd: ' + code);
 }
 
+// ── THEME ─────────────────────────────────────────────────────────────────
+const THEMES = ['klinika','noc','ocean'];
+let currentTheme = localStorage.getItem('mikcja_theme') || 'klinika';
+
+function applyTheme(t) {
+    THEMES.forEach(th => document.body.classList.remove('theme-' + th));
+    document.body.classList.add('theme-' + t);
+    THEMES.forEach(th => document.getElementById('th-' + th).classList.toggle('active', th === t));
+    currentTheme = t;
+    localStorage.setItem('mikcja_theme', t);
+}
+
+function setTheme(t) {
+    applyTheme(t);
+    toggleThemeBar();
+    if (balanceChart) { balanceChart.destroy(); balanceChart = null; updateChart(); }
+}
+
+function toggleThemeBar() {
+    document.getElementById('themeBar').classList.toggle('open');
+}
+
 async function handleLogout() {
     if (!fbAuth) return;
     if (!confirm('Wylogować się?')) return;
@@ -1677,6 +1802,7 @@ function buildPreviewTable() {
 load();
 render();
 initFirebase();
+applyTheme(currentTheme);
 </script>
 </body>
 </html>
