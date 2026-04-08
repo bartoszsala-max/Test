@@ -1205,7 +1205,8 @@ function render() {
         const hasFluids = (e.fluids|0) > 0;
         const hasUrine  = (e.urine|0)  > 0;
         const typeClass = hasFluids && hasUrine ? 'type-both' : hasFluids ? 'type-drink' : hasUrine ? 'type-urine' : '';
-        const typeIcon  = hasFluids && hasUrine ? '🍶💛' : hasFluids ? '🍶' : hasUrine ? '💛' : '📋';
+        const nightIcon = e.night === 'obudzenie' ? '☀️' : e.night === 'sen' ? '🛏️' : null;
+        const typeIcon  = hasFluids && hasUrine ? '🍶💛' : hasFluids ? '🍶' : hasUrine ? '💛' : nightIcon || '📋';
         const drinkBadge = e.drink
             ? `<span class="badge badge-drink">${drinkLabel(e.drink)}</span>`
             : '';
