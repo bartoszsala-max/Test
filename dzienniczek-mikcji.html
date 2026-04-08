@@ -1450,7 +1450,12 @@ async function loadFromCloud() {
             }
         }
         setSyncDot('ok');
-    } catch(e) { setSyncDot('error'); }
+    } catch(e) {
+        setSyncDot('error');
+        if (e.message && e.message.includes('permission')) {
+            alert('Błąd dostępu do bazy danych.\n\nSprawdź czy w Firebase Console:\n1. Realtime Database została utworzona\n2. Reguły ustawione na "test mode"');
+        }
+    }
 }
 
 function setSyncDot(status) {
@@ -1471,15 +1476,21 @@ function closeSetup() { document.getElementById('setupOverlay').classList.add('h
 function saveFirebaseConfig() {
     const raw = document.getElementById('fbConfigInput').value.trim();
     try {
-        // accept either raw JSON or the full "const firebaseConfig = {...}" format
-        const jsonStr = raw.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
-        const cfg = JSON.parse(jsonStr);
-        if (!cfg.apiKey || !cfg.databaseURL) throw new Error('Brak wymaganych pól (apiKey, databaseURL)');
+        // extract JSON object from any pasted format
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('Nie znaleziono obiektu konfiguracji { ... }');
+        const cfg = JSON.parse(match[0]);
+        if (!cfg.apiKey)     throw new Error('Brak pola "apiKey"');
+        if (!cfg.projectId)  throw new Error('Brak pola "projectId"');
+        // auto-construct databaseURL if missing (standard Firebase naming)
+        if (!cfg.databaseURL) {
+            cfg.databaseURL = `https://${cfg.projectId}-default-rtdb.firebaseio.com`;
+        }
         localStorage.setItem('mikcja_fb_cfg', JSON.stringify(cfg));
         closeSetup();
         location.reload();
     } catch(e) {
-        document.getElementById('setupError').textContent = 'Błąd: ' + e.message + '. Sprawdź czy wkleiłeś poprawny JSON.';
+        document.getElementById('setupError').textContent = 'Błąd: ' + e.message;
     }
 }
 
