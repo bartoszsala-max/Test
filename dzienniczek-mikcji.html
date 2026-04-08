@@ -643,6 +643,8 @@
             border-radius: 50%;
         }
         .chart-wrap { position: relative; height: 200px; }
+        .chart-empty { text-align: center; padding: 32px; font-size: 13px; color: var(--muted); }
+        .chart-empty.hidden { display: none; }
     </style>
 </head>
 <body>
@@ -735,6 +737,21 @@
         <div class="chart-wrap">
             <canvas id="balanceChart"></canvas>
         </div>
+    </div>
+
+    <!-- HOURLY CHART -->
+    <div class="chart-card" id="hourlyChartCard">
+        <div class="chart-header">
+            <div class="chart-title">Rozkład godzinowy – <span id="hourlyDayLabel">Dzień 1</span></div>
+            <div class="chart-legend">
+                <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#2563eb"></div>Napoje</div>
+                <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#10b981"></div>Mikcja</div>
+            </div>
+        </div>
+        <div class="chart-wrap" id="hourlyChartWrap">
+            <canvas id="hourlyChart"></canvas>
+        </div>
+        <div id="hourlyEmpty" class="chart-empty hidden">Brak wpisów dla tego dnia</div>
     </div>
 
     <!-- SUMMARY -->
@@ -966,6 +983,7 @@ function render() {
     document.getElementById('sumCount').textContent = entries.length;
 
     updateChart();
+    updateHourlyChart();
 
     // Entry list
     const list = document.getElementById('entriesList');
@@ -1338,6 +1356,94 @@ let syncTimer = null;
 
 // ── CHART ────────────────────────────────────────────────────────────────
 let balanceChart = null;
+let hourlyChart = null;
+
+function updateHourlyChart() {
+    const dayLabel = `Dzień ${curDay + 1}`;
+    document.getElementById('hourlyDayLabel').textContent = dayLabel;
+
+    const entries = state.days[curDay] || [];
+    // Group by hour, only hours with data
+    const hourMap = {};
+    entries.forEach(e => {
+        if (!hourMap[e.hour]) hourMap[e.hour] = { fluids: 0, urine: 0 };
+        hourMap[e.hour].fluids += e.fluids|0;
+        hourMap[e.hour].urine  += e.urine|0;
+    });
+
+    const activeHours = Object.keys(hourMap).map(Number).sort((a,b) => a-b);
+    const empty = activeHours.length === 0;
+
+    document.getElementById('hourlyChartWrap').style.display = empty ? 'none' : 'block';
+    document.getElementById('hourlyEmpty').classList.toggle('hidden', !empty);
+
+    if (empty) {
+        if (hourlyChart) { hourlyChart.destroy(); hourlyChart = null; }
+        return;
+    }
+
+    const labels  = activeHours.map(h => HOURS[h]);
+    const napoje  = activeHours.map(h => hourMap[h].fluids);
+    const mikcja  = activeHours.map(h => hourMap[h].urine);
+
+    const chartData = {
+        labels,
+        datasets: [
+            {
+                label: 'Napoje',
+                data: napoje,
+                backgroundColor: 'rgba(37,99,235,0.75)',
+                borderRadius: 6,
+                borderSkipped: false,
+            },
+            {
+                label: 'Mikcja',
+                data: mikcja,
+                backgroundColor: 'rgba(16,185,129,0.75)',
+                borderRadius: 6,
+                borderSkipped: false,
+            },
+        ]
+    };
+
+    if (!hourlyChart) {
+        const ctx = document.getElementById('hourlyChart').getContext('2d');
+        hourlyChart = new Chart(ctx, {
+            type: 'bar',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} ml`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 11, weight: '600' }, color: '#64748b' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            font: { size: 11 },
+                            color: '#94a3b8',
+                            callback: v => v + ' ml'
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        hourlyChart.data = chartData;
+        hourlyChart.update();
+    }
+}
 
 function updateChart() {
     const totals = state.days.map(day => ({
