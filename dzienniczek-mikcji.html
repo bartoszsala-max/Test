@@ -40,31 +40,33 @@
 
         /* ── HEADER ── */
         .header {
-            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: white;
-            padding: 16px 20px;
+            padding: 20px 24px;
             position: sticky;
             top: 0;
             z-index: 100;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 20px rgba(37,99,235,0.35);
+            box-shadow: 0 2px 16px rgba(0,0,0,0.2);
         }
-        .header-title { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+        .header-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
         .header-sub { font-size: 11px; opacity: 0.75; margin-top: 2px; }
         .btn-reset {
-            background: rgba(255,255,255,0.18);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            border-radius: 10px;
-            padding: 8px 14px;
+            background: transparent;
+            border: 1.5px solid rgba(255,255,255,0.25);
+            color: rgba(255,255,255,0.7);
+            border-radius: 8px;
+            padding: 7px 14px;
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.15s;
+            letter-spacing: 0.02em;
         }
-        .btn-reset:active { background: rgba(255,255,255,0.3); transform: scale(0.96); }
+        .btn-reset:hover { border-color: rgba(255,255,255,0.5); color: white; }
+        .btn-reset:active { background: rgba(255,255,255,0.1); transform: scale(0.96); }
 
         /* ── PATIENT ── */
         .patient-section {
@@ -477,7 +479,7 @@
         .sync-dot.busy  { background:#fbbf24; animation: pulse 1s infinite; }
         .sync-dot.error { background:#f87171; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        .header-user { font-size:12px; opacity:0.85; margin-top:2px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+        .header-user { font-size:12px; opacity:0.5; margin-top:3px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:400; letter-spacing:0.01em; }
 
         /* ── LOGIN SCREEN ── */
         .login-overlay { position:fixed; inset:0; background:linear-gradient(160deg,#1e3a8a 0%,#2563eb 50%,#7c3aed 100%); z-index:500; display:flex; align-items:center; justify-content:center; padding:20px; }
