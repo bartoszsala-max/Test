@@ -544,6 +544,7 @@
         .user-menu-item { display: block; width: 100%; padding: 13px 16px; text-align: left; background: none; border: none; font-size: 14px; font-weight: 600; color: #0f172a; cursor: pointer; }
         .user-menu-item:active { background: #f1f5f9; }
         .user-menu-item-danger { color: #dc2626; }
+        .user-menu-version { padding: 8px 16px 10px; font-size: 11px; color: #94a3b8; text-align: center; }
 
         /* ── LOGIN SCREEN ── */
         .login-overlay { position:fixed; inset:0; background:linear-gradient(160deg,#1e3a8a 0%,#2563eb 50%,#7c3aed 100%); z-index:500; display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -827,8 +828,10 @@
                 <div class="user-menu hidden" id="userMenu">
                     <div class="user-menu-email" id="headerUser">–</div>
                     <div class="user-menu-divider"></div>
-                    <button class="user-menu-item" onclick="changePassword()">🔑 Zmień hasło</button>
-                    <button class="user-menu-item user-menu-item-danger" onclick="handleLogout()">↩ Wyloguj</button>
+                    <button type="button" class="user-menu-item" onclick="changePassword()">🔑 Zmień hasło</button>
+                    <button type="button" class="user-menu-item user-menu-item-danger" onclick="handleLogout()">↩ Wyloguj</button>
+                    <div class="user-menu-divider"></div>
+                    <div class="user-menu-version">Dzienniczek Mikcji v1.4.0</div>
                 </div>
             </div>
         </div>
