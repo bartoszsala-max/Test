@@ -264,6 +264,34 @@
         .fab-add { background: var(--primary); color: white; width: 64px; height: 64px; font-size: 28px; }
         .fab-pdf { background: var(--green); color: white; font-size: 18px; }
 
+        /* ── ACTION BAR ── */
+        .action-bar {
+            display: flex;
+            gap: 10px;
+            padding: 10px 18px 4px;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+        }
+        .action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 11px 8px;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            background: white;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: var(--text);
+        }
+        .action-btn:active { transform: scale(0.96); }
+        .action-btn-preview { border-color: #7c3aed; color: #7c3aed; background: #faf5ff; }
+        .action-btn-pdf     { border-color: var(--green); color: var(--green); background: var(--green-light); }
+
         /* ── MODAL ── */
         .modal-overlay {
             position: fixed;
@@ -566,6 +594,16 @@
         </button>
     </div>
 
+    <!-- ACTION BAR -->
+    <div class="action-bar">
+        <button class="action-btn action-btn-preview" onclick="openPreview()">
+            📊 Podgląd tabeli
+        </button>
+        <button class="action-btn action-btn-pdf" onclick="exportPDF()">
+            📄 Eksport PDF
+        </button>
+    </div>
+
     <!-- SUMMARY -->
     <div class="summary-card">
         <div class="summary-title">Podsumowanie – <span id="dayLabel">Dzień 1</span></div>
@@ -602,9 +640,7 @@
 
 <!-- FAB -->
 <div class="fab-container">
-    <button class="fab fab-pdf"   onclick="exportPDF()"   title="Eksportuj PDF">📄</button>
-    <button class="fab fab-table" onclick="openPreview()" title="Podgląd tabeli">📊</button>
-    <button class="fab fab-add"   onclick="openAddModal()" title="Dodaj wpis">+</button>
+    <button class="fab fab-add" onclick="openAddModal()" title="Dodaj wpis">+</button>
 </div>
 
 <!-- TABLE PREVIEW OVERLAY -->
