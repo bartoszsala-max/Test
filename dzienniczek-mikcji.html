@@ -40,8 +40,8 @@
 
         /* ── HEADER ── */
         .header {
-            background: #ffffff;
-            color: var(--text);
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%);
+            color: white;
             padding: 22px 24px;
             position: sticky;
             top: 0;
@@ -49,16 +49,15 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 1px 8px rgba(0,0,0,0.08);
-            border-bottom: 1px solid var(--border);
+            box-shadow: 0 4px 20px rgba(37,99,235,0.4);
         }
-        .header-title { font-size: 30px; font-weight: 900; letter-spacing: -0.6px; color: var(--primary); line-height: 1.1; }
+        .header-title { font-size: 30px; font-weight: 900; letter-spacing: -0.6px; color: white; line-height: 1.1; }
         .header-logo { flex-shrink: 0; }
         .header-sub { font-size: 11px; opacity: 0.75; margin-top: 2px; }
         .btn-reset {
-            background: transparent;
-            border: 1.5px solid var(--border);
-            color: var(--muted);
+            background: rgba(255,255,255,0.15);
+            border: 1.5px solid rgba(255,255,255,0.3);
+            color: white;
             border-radius: 8px;
             padding: 7px 14px;
             font-size: 12px;
@@ -66,7 +65,7 @@
             cursor: pointer;
             transition: all 0.15s;
         }
-        .btn-reset:active { background: #f1f5f9; transform: scale(0.96); }
+        .btn-reset:active { background: rgba(255,255,255,0.25); transform: scale(0.96); }
 
         /* ── PATIENT ── */
         .patient-section {
@@ -479,7 +478,7 @@
         .sync-dot.busy  { background:#fbbf24; animation: pulse 1s infinite; }
         .sync-dot.error { background:#f87171; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        .header-user { font-size:12px; color:var(--muted); margin-top:3px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:400; }
+        .header-user { font-size:12px; color:rgba(255,255,255,0.7); margin-top:3px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:400; }
 
         /* ── LOGIN SCREEN ── */
         .login-overlay { position:fixed; inset:0; background:linear-gradient(160deg,#1e3a8a 0%,#2563eb 50%,#7c3aed 100%); z-index:500; display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -613,7 +612,7 @@
         <div style="display:flex;align-items:center;gap:14px">
             <div class="header-logo">
                 <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="40" height="40" rx="12" fill="#2563eb"/>
+                    <rect width="40" height="40" rx="12" fill="rgba(255,255,255,0.2)"/>
                     <path d="M20 8C20 8 12 16.5 12 22.5C12 27.299 15.582 31 20 31C24.418 31 28 27.299 28 22.5C28 16.5 20 8 20 8Z" fill="white" opacity="0.9"/>
                     <path d="M20 14C20 14 15 19.5 15 23C15 25.761 17.239 28 20 28" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
                 </svg>
