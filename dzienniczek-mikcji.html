@@ -1477,8 +1477,14 @@ async function loadFromCloud() {
         setSyncDot('ok');
     } catch(e) {
         setSyncDot('error', e.message || String(e));
-        alert('❌ Błąd synchronizacji z Firebase:\n\n' + (e.message || e) +
-              '\n\n─────────────────\nNajczęstsza przyczyna: reguły bazy danych.\n\nW Firebase Console:\n1. Otwórz projekt → Realtime Database\n2. Kliknij zakładkę "Rules"\n3. Wpisz:\n{\n  "rules": {\n    ".read": "auth != null",\n    ".write": "auth != null"\n  }\n}\n4. Kliknij "Publish"');
+        const msg = e.message || String(e);
+        let hint = '';
+        if (msg.includes('offline') || msg.includes('network')) {
+            hint = '\n\n─────────────────\nPrzyczyna: Realtime Database nie istnieje.\n\nW Firebase Console:\n1. Otwórz projekt\n2. Build → Realtime Database\n3. Kliknij "Create database"\n4. Wybierz region → Start in test mode';
+        } else if (msg.includes('permission') || msg.includes('PERMISSION')) {
+            hint = '\n\n─────────────────\nPrzyczyna: brak uprawnień.\n\nW Firebase Console:\n1. Realtime Database → Rules\n2. Wpisz: { "rules": { ".read": "auth != null", ".write": "auth != null" } }\n3. Kliknij "Publish"';
+        }
+        alert('❌ Błąd synchronizacji z Firebase:\n\n' + msg + hint);
     }
 }
 
