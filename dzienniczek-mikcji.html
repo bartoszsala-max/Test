@@ -1053,8 +1053,8 @@
         <div class="form-group">
             <label class="field-label">Zdarzenie nocne</label>
             <div class="seg-group" id="nightGroup">
-                <button type="button" class="seg-btn" data-val="obudzenie" onclick="pickNight('obudzenie')">🌙<small>Obudzenie</small></button>
-                <button type="button" class="seg-btn" data-val="sen"       onclick="pickNight('sen')">😴<small>Zaśnięcie</small></button>
+                <button type="button" class="seg-btn" data-val="obudzenie" onclick="pickNight('obudzenie')">☀️<small>Obudzenie</small></button>
+                <button type="button" class="seg-btn" data-val="sen"       onclick="pickNight('sen')">🛏️<small>Zaśnięcie</small></button>
             </div>
         </div>
 
@@ -1215,8 +1215,8 @@ function render() {
         const leakBadge = e.leak
             ? `<span class="badge badge-leak">Gubienie: ${leakLabel(e.leak)}</span>`
             : '';
-        const nightBadge = e.night === 'obudzenie' ? `<span class="badge badge-night">🌙 Obudzenie</span>`
-            : e.night === 'sen' ? `<span class="badge badge-night">😴 Zaśnięcie</span>` : '';
+        const nightBadge = e.night === 'obudzenie' ? `<span class="badge badge-night">☀️ Obudzenie</span>`
+            : e.night === 'sen' ? `<span class="badge badge-night">🛏️ Zaśnięcie</span>` : '';
         const badges = (drinkBadge || urgeBadge || leakBadge || nightBadge)
             ? `<div class="entry-badges">${nightBadge}${drinkBadge}${urgeBadge}${leakBadge}</div>`
             : '';
