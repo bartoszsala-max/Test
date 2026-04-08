@@ -40,33 +40,32 @@
 
         /* ── HEADER ── */
         .header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: white;
-            padding: 20px 24px;
+            background: #ffffff;
+            color: var(--text);
+            padding: 22px 24px;
             position: sticky;
             top: 0;
             z-index: 100;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+            box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+            border-bottom: 1px solid var(--border);
         }
-        .header-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+        .header-title { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: var(--primary); }
         .header-sub { font-size: 11px; opacity: 0.75; margin-top: 2px; }
         .btn-reset {
             background: transparent;
-            border: 1.5px solid rgba(255,255,255,0.25);
-            color: rgba(255,255,255,0.7);
+            border: 1.5px solid var(--border);
+            color: var(--muted);
             border-radius: 8px;
             padding: 7px 14px;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.15s;
-            letter-spacing: 0.02em;
         }
-        .btn-reset:hover { border-color: rgba(255,255,255,0.5); color: white; }
-        .btn-reset:active { background: rgba(255,255,255,0.1); transform: scale(0.96); }
+        .btn-reset:active { background: #f1f5f9; transform: scale(0.96); }
 
         /* ── PATIENT ── */
         .patient-section {
@@ -479,7 +478,7 @@
         .sync-dot.busy  { background:#fbbf24; animation: pulse 1s infinite; }
         .sync-dot.error { background:#f87171; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        .header-user { font-size:12px; opacity:0.5; margin-top:3px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:400; letter-spacing:0.01em; }
+        .header-user { font-size:12px; color:var(--muted); margin-top:3px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:400; }
 
         /* ── LOGIN SCREEN ── */
         .login-overlay { position:fixed; inset:0; background:linear-gradient(160deg,#1e3a8a 0%,#2563eb 50%,#7c3aed 100%); z-index:500; display:flex; align-items:center; justify-content:center; padding:20px; }
