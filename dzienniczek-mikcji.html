@@ -1379,6 +1379,11 @@ function switchAuthTab(tab) {
 }
 
 async function handleAuth() {
+    if (!fbAuth) {
+        document.getElementById('authError').textContent =
+            'Najpierw skonfiguruj Firebase — kliknij przycisk ☁️ powyżej.';
+        return;
+    }
     const email = document.getElementById('authEmail').value.trim();
     const pass  = document.getElementById('authPassword').value;
     const isLogin = document.getElementById('tabLogin').classList.contains('active');
