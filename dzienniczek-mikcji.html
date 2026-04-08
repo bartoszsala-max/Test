@@ -1161,7 +1161,7 @@ function selectDay(d) {
 function render() {
     // Tab counts
     [0,1,2].forEach(i => {
-        const n = state.days[i].length;
+        const n = state.days[i].filter(e => !e.night || (e.fluids|0) > 0 || (e.urine|0) > 0).length;
         document.getElementById(`cnt${i+1}`).textContent =
             n === 0 ? '– wpisów' : n === 1 ? '1 wpis' : `${n} wpisów`;
     });
@@ -1182,7 +1182,8 @@ function render() {
     const sumU = entries.reduce((s,e) => s + (e.urine|0), 0);
     document.getElementById('sumFluids').textContent = sumF;
     document.getElementById('sumUrine').textContent = sumU;
-    document.getElementById('sumCount').textContent = entries.length;
+    const medEntries = entries.filter(e => !e.night || (e.fluids|0) > 0 || (e.urine|0) > 0);
+    document.getElementById('sumCount').textContent = medEntries.length;
     const mikcjaCount = entries.filter(e => (e.urine|0) > 0).length;
     const drinkCount  = entries.filter(e => (e.fluids|0) > 0).length;
     document.getElementById('sumBreakdown').innerHTML = `${mikcjaCount} mikcji<br>${drinkCount} napojów`;
