@@ -426,6 +426,111 @@
             color: var(--muted);
             line-height: 1.7;
         }
+
+        /* ── TABLE PREVIEW ── */
+        .preview-overlay {
+            position: fixed;
+            inset: 0;
+            background: #f1f5f9;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+        }
+        .preview-overlay.hidden { display: none; }
+        .preview-header {
+            background: var(--primary);
+            color: white;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .preview-header h2 { font-size: 16px; font-weight: 700; }
+        .preview-header-sub { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+        .preview-close {
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 9px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s;
+            flex-shrink: 0;
+        }
+        .preview-close:active { background: rgba(255,255,255,0.3); }
+        .preview-body {
+            flex: 1;
+            overflow: auto;
+            padding: 14px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .preview-hint {
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .preview-table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            background: white;
+        }
+        .ptable {
+            border-collapse: collapse;
+            width: 100%;
+            min-width: 820px;
+            font-size: 11px;
+        }
+        .ptable th {
+            background: #1d6fd4;
+            color: white;
+            padding: 7px 5px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 10px;
+            border: 1px solid #1450a3;
+        }
+        .ptable th.day-hd { font-size: 12px; font-weight: 800; }
+        .ptable td {
+            padding: 5px 5px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        .ptable tbody tr:nth-child(even) td { background: #f8fafc; }
+        .ptable tbody tr:nth-child(even) .hour-cell { background: #dbeafe !important; }
+        .hour-cell {
+            font-weight: 700;
+            background: #eff6ff !important;
+            color: #1d4ed8;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+        .td-time { font-weight: 700; color: #1d4ed8; font-size: 12px; }
+        .td-drink { color: #065f46; font-size: 10px; }
+        .td-urge { color: #1d4ed8; }
+        .td-leak { color: #92400e; }
+        .td-num { font-weight: 700; }
+        .sum-row td {
+            background: #dbeafe !important;
+            font-weight: 800;
+            color: #1e3a8a;
+        }
+        .preview-legend {
+            margin-top: 12px;
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.8;
+            background: white;
+            border-radius: 10px;
+            padding: 10px 14px;
+        }
+        .fab-table { background: #7c3aed; color: white; }
     </style>
 </head>
 <body>
@@ -497,8 +602,30 @@
 
 <!-- FAB -->
 <div class="fab-container">
-    <button class="fab fab-pdf" onclick="exportPDF()" title="Eksportuj PDF">📄</button>
-    <button class="fab fab-add" onclick="openAddModal()" title="Dodaj wpis">+</button>
+    <button class="fab fab-pdf"   onclick="exportPDF()"   title="Eksportuj PDF">📄</button>
+    <button class="fab fab-table" onclick="openPreview()" title="Podgląd tabeli">📊</button>
+    <button class="fab fab-add"   onclick="openAddModal()" title="Dodaj wpis">+</button>
+</div>
+
+<!-- TABLE PREVIEW OVERLAY -->
+<div class="preview-overlay hidden" id="previewOverlay">
+    <div class="preview-header">
+        <div>
+            <h2>Podgląd tabeli</h2>
+            <div class="preview-header-sub" id="previewPatientLabel">–</div>
+        </div>
+        <button class="preview-close" onclick="closePreview()">✕ Zamknij</button>
+    </div>
+    <div class="preview-body">
+        <div class="preview-hint">← Przewiń w bok aby zobaczyć wszystkie 3 doby →</div>
+        <div class="preview-table-wrap">
+            <table class="ptable" id="previewTable"></table>
+        </div>
+        <div class="preview-legend">
+            <strong>Parcie na mocz:</strong> x = słabe &nbsp;|&nbsp; xx = normalne &nbsp;|&nbsp; xxx = silne &nbsp;|&nbsp; N = niekontrolowane<br>
+            <strong>Gubienie moczu:</strong> x = kilka kropli &nbsp;|&nbsp; xx = wilgotno &nbsp;|&nbsp; xxx = mokro
+        </div>
+    </div>
 </div>
 
 <!-- MODAL -->
@@ -1017,6 +1144,81 @@ function exportPDF() {
 
     const fname = `dzienniczek_mikcji_${(state.patientName||'pacjent').replace(/\s+/g,'_')}.pdf`;
     doc.save(fname);
+}
+
+// ── TABLE PREVIEW ────────────────────────────────────────────────────────
+function openPreview() {
+    document.getElementById('previewPatientLabel').textContent =
+        state.patientName || 'Brak danych pacjenta';
+    buildPreviewTable();
+    document.getElementById('previewOverlay').classList.remove('hidden');
+}
+
+function closePreview() {
+    document.getElementById('previewOverlay').classList.add('hidden');
+}
+
+function buildPreviewTable() {
+    const table = document.getElementById('previewTable');
+
+    // ── header ──
+    let html = `<thead>
+      <tr>
+        <th rowspan="2" style="vertical-align:middle;min-width:54px">Godzina</th>
+        <th colspan="6" class="day-hd">Dzień 1</th>
+        <th colspan="6" class="day-hd">Dzień 2</th>
+        <th colspan="6" class="day-hd">Dzień 3</th>
+      </tr>
+      <tr>
+        ${[1,2,3].map(() =>
+          '<th>Czas</th><th>Napój</th><th>Płyny<br>(ml)</th><th>Mocz<br>(ml)</th><th>Parcie</th><th>Gubienie</th>'
+        ).join('')}
+      </tr>
+    </thead><tbody>`;
+
+    // ── body: 24 godziny ──
+    for (let h = 0; h < 24; h++) {
+        const dayEntries = [0,1,2].map(d =>
+            (state.days[d]||[])
+                .filter(e => e.hour === h)
+                .sort((a,b) => (a.time||'').localeCompare(b.time||''))
+        );
+        const rowCount = Math.max(1, ...dayEntries.map(a => a.length));
+
+        for (let r = 0; r < rowCount; r++) {
+            html += '<tr>';
+            if (r === 0) {
+                html += `<td class="hour-cell" rowspan="${rowCount}">${HOURS[h]}</td>`;
+            }
+            for (let d = 0; d < 3; d++) {
+                const e = dayEntries[d][r];
+                if (e) {
+                    html += `
+                      <td class="td-time">${e.time || ''}</td>
+                      <td class="td-drink">${e.drink ? drinkShort(e.drink) : ''}</td>
+                      <td class="td-num">${e.fluids || ''}</td>
+                      <td class="td-num">${e.urine  || ''}</td>
+                      <td class="td-urge">${e.urge  ? urgeShort(e.urge) : ''}</td>
+                      <td class="td-leak">${e.leak  || ''}</td>`;
+                } else {
+                    html += '<td></td><td></td><td></td><td></td><td></td><td></td>';
+                }
+            }
+            html += '</tr>';
+        }
+    }
+
+    // ── sum row ──
+    html += '<tr class="sum-row"><td>SUMA</td>';
+    for (let d = 0; d < 3; d++) {
+        const arr = state.days[d] || [];
+        const sf = arr.reduce((s,e) => s + (e.fluids|0), 0);
+        const su = arr.reduce((s,e) => s + (e.urine|0),  0);
+        html += `<td></td><td></td><td>${sf||''}</td><td>${su||''}</td><td></td><td></td>`;
+    }
+    html += '</tr></tbody>';
+
+    table.innerHTML = html;
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
