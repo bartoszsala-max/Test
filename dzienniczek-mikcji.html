@@ -1480,13 +1480,12 @@ function closeSetup() { document.getElementById('setupOverlay').classList.add('h
 function saveFirebaseConfig() {
     const raw = document.getElementById('fbConfigInput').value.trim();
     try {
-        // extract JSON object from any pasted format
-        const match = raw.match(/\{[\s\S]*\}/);
+        const match = raw.match(/\{[\s\S]*?\}/);
         if (!match) throw new Error('Nie znaleziono obiektu konfiguracji { ... }');
-        const cfg = JSON.parse(match[0]);
-        if (!cfg.apiKey)     throw new Error('Brak pola "apiKey"');
-        if (!cfg.projectId)  throw new Error('Brak pola "projectId"');
-        // auto-construct databaseURL if missing (standard Firebase naming)
+        // evaluate as JS (handles unquoted keys like apiKey: "...")
+        const cfg = new Function('return (' + match[0] + ')')();
+        if (!cfg.apiKey)    throw new Error('Brak pola apiKey');
+        if (!cfg.projectId) throw new Error('Brak pola projectId');
         if (!cfg.databaseURL) {
             cfg.databaseURL = `https://${cfg.projectId}-default-rtdb.firebaseio.com`;
         }
