@@ -68,12 +68,6 @@
         }
         .btn-reset:active { background: rgba(255,255,255,0.25); transform: scale(0.96); }
 
-        /* ── PATIENT ── */
-        .patient-section {
-            background: var(--card);
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-        }
         .field-label {
             font-size: 11px;
             font-weight: 700;
@@ -83,18 +77,6 @@
             margin-bottom: 6px;
             display: block;
         }
-        .patient-input {
-            width: 100%;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            padding: 11px 14px;
-            font-size: 16px;
-            color: var(--text);
-            outline: none;
-            transition: border-color 0.2s;
-            background: white;
-        }
-        .patient-input:focus { border-color: var(--primary); }
 
         /* ── DAY TABS ── */
         .day-tabs {
@@ -479,7 +461,10 @@
         .sync-dot.busy  { background:#fbbf24; animation: pulse 1s infinite; }
         .sync-dot.error { background:#f87171; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        .header-user { font-size:12px; color:rgba(255,255,255,0.7); margin-top:3px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:400; }
+        .header-user { font-size:10px; color:rgba(255,255,255,0.75); margin-top:2px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:400; text-align:center; }
+        .user-avatar-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; opacity:0.9; transition:opacity 0.15s; }
+        .user-avatar-wrap:active { opacity:0.7; }
+        .user-avatar-icon { width:34px; height:34px; background:rgba(255,255,255,0.2); border:1.5px solid rgba(255,255,255,0.35); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; color:white; }
 
         /* ── LOGIN SCREEN ── */
         .login-overlay { position:fixed; inset:0; background:linear-gradient(160deg,#1e3a8a 0%,#2563eb 50%,#7c3aed 100%); z-index:500; display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -748,21 +733,15 @@
             </div>
             <div>
                 <div class="header-title">Dzienniczek Mikcji</div>
-                <div class="header-user" id="headerUser">Dziennik oddawania moczu</div>
             </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;gap:12px;align-items:center">
             <span class="sync-dot" id="syncDot" title="Status chmury"></span>
-            <button class="btn-reset" onclick="handleLogout()">Wyloguj</button>
+            <div class="user-avatar-wrap" onclick="handleLogout()" title="Wyloguj">
+                <div class="user-avatar-icon" id="userAvatarIcon">?</div>
+                <div class="user-avatar-email" id="headerUser">–</div>
+            </div>
         </div>
-    </div>
-
-    <!-- PATIENT -->
-    <div class="patient-section">
-        <label class="field-label" for="patientName">Imię i Nazwisko Pacjenta</label>
-        <input type="text" class="patient-input" id="patientName"
-               placeholder="Wpisz imię i nazwisko..."
-               oninput="onPatientChange(this.value)" />
     </div>
 
     <!-- DAY TABS -->
@@ -1016,7 +995,7 @@ function load() {
         // ensure 3 day arrays
         while (state.days.length < 3) state.days.push([]);
     } catch(e) {}
-    document.getElementById('patientName').value = state.patientName || '';
+    
 }
 
 function save() {
@@ -1024,16 +1003,12 @@ function save() {
     saveToCloud();
 }
 
-function onPatientChange(v) {
-    state.patientName = v;
-    save();
-}
 
 function resetData() {
     if (!confirm('Czy na pewno chcesz usunąć wszystkie dane i zacząć od nowa?')) return;
     state = { patientName: '', days: [[], [], []] };
     save();
-    document.getElementById('patientName').value = '';
+    
     render();
 }
 
@@ -1565,6 +1540,7 @@ function initFirebase() {
             if (user) {
                 document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('headerUser').textContent = user.email;
+                document.getElementById('userAvatarIcon').textContent = user.email[0].toUpperCase();
                 loadFromCloud();
             } else {
                 showLogin();
@@ -1578,7 +1554,8 @@ function initFirebase() {
 
 function showLogin() {
     document.getElementById('loginOverlay').classList.remove('hidden');
-    document.getElementById('headerUser').textContent = 'Dziennik oddawania moczu';
+    document.getElementById('headerUser').textContent = '';
+    document.getElementById('userAvatarIcon').textContent = '?';
     setSyncDot('');
 }
 
@@ -1652,7 +1629,7 @@ async function handleLogout() {
     if (!confirm('Wylogować się?')) return;
     await fbAuth.signOut();
     state = { patientName: '', days: [[], [], []] };
-    document.getElementById('patientName').value = '';
+    
     render();
 }
 
@@ -1679,7 +1656,7 @@ async function loadFromCloud() {
                 state = d;
                 while (state.days.length < 3) state.days.push([]);
                 localStorage.setItem('mikcja_v1', JSON.stringify(state));
-                document.getElementById('patientName').value = state.patientName || '';
+                
                 render();
             }
         } else {
@@ -1694,7 +1671,7 @@ async function loadFromCloud() {
                             state = parsed;
                             while (state.days.length < 3) state.days.push([]);
                             await fbDb.ref(`users/${currentUser.uid}/mikcja`).set(state);
-                            document.getElementById('patientName').value = state.patientName || '';
+                            
                             render();
                         }
                     }
