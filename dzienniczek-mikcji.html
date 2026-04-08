@@ -1633,7 +1633,7 @@ function updateChart() {
     const points = [];
     daysToUse.forEach(({ day, label }) => {
         const hourMap = {};
-        day.forEach(e => {
+        day.filter(e => (e.fluids|0) > 0 || (e.urine|0) > 0).forEach(e => {
             if (!hourMap[e.hour]) hourMap[e.hour] = { fluids: 0, urine: 0, fluidCount: 0, urineCount: 0 };
             hourMap[e.hour].fluids += e.fluids|0;
             hourMap[e.hour].urine  += e.urine|0;
