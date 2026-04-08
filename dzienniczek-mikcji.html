@@ -6,6 +6,9 @@
     <title>Dzienniczek Mikcji</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         :root {
             --primary: #1d6fd4;
@@ -494,6 +497,46 @@
             line-height: 1.7;
         }
 
+        /* ── SYNC STATUS ── */
+        .sync-dot { width:10px; height:10px; border-radius:50%; background:#94a3b8; display:inline-block; flex-shrink:0; transition:background 0.3s; }
+        .sync-dot.ok    { background:#4ade80; }
+        .sync-dot.busy  { background:#fbbf24; animation: pulse 1s infinite; }
+        .sync-dot.error { background:#f87171; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .btn-header { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:white; border-radius:8px; padding:7px 10px; font-size:14px; cursor:pointer; }
+        .btn-header:active { background:rgba(255,255,255,0.25); }
+        .header-user { font-size:11px; opacity:0.8; margin-top:2px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+        /* ── LOGIN SCREEN ── */
+        .login-overlay { position:fixed; inset:0; background:linear-gradient(160deg,#1d4ed8,#6d28d9); z-index:500; display:flex; align-items:center; justify-content:center; padding:20px; }
+        .login-overlay.hidden { display:none; }
+        .login-card { background:white; border-radius:24px; padding:32px 28px 28px; width:100%; max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+        .login-logo { text-align:center; font-size:40px; margin-bottom:8px; }
+        .login-title { text-align:center; font-size:22px; font-weight:800; color:var(--text); margin-bottom:4px; }
+        .login-sub { text-align:center; font-size:13px; color:var(--muted); margin-bottom:24px; }
+        .login-tabs { display:flex; gap:0; border:2px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:20px; }
+        .login-tab { flex:1; padding:10px; background:white; border:none; font-size:14px; font-weight:700; color:var(--muted); cursor:pointer; transition:all 0.15s; }
+        .login-tab.active { background:var(--primary); color:white; }
+        .login-field { margin-bottom:14px; }
+        .login-input { width:100%; border:2px solid var(--border); border-radius:10px; padding:13px 14px; font-size:16px; outline:none; transition:border-color 0.2s; }
+        .login-input:focus { border-color:var(--primary); }
+        .login-btn { width:100%; padding:15px; background:var(--primary); color:white; border:none; border-radius:12px; font-size:16px; font-weight:800; cursor:pointer; margin-top:8px; transition:opacity 0.2s; }
+        .login-btn:active { opacity:0.85; }
+        .login-error { color:var(--red); font-size:13px; margin-top:10px; text-align:center; min-height:18px; }
+        .login-divider { text-align:center; font-size:12px; color:var(--muted); margin:16px 0 0; }
+
+        /* ── FIREBASE SETUP MODAL ── */
+        .setup-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:400; display:flex; align-items:center; justify-content:center; padding:16px; }
+        .setup-overlay.hidden { display:none; }
+        .setup-card { background:white; border-radius:20px; padding:24px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; }
+        .setup-title { font-size:18px; font-weight:800; margin-bottom:6px; }
+        .setup-desc { font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5; }
+        .setup-steps { background:#f8fafc; border-radius:10px; padding:14px; margin-bottom:16px; font-size:12px; color:var(--text); line-height:1.9; }
+        .setup-steps a { color:var(--primary); }
+        .setup-textarea { width:100%; height:120px; border:2px solid var(--border); border-radius:10px; padding:10px; font-size:12px; font-family:monospace; outline:none; resize:vertical; }
+        .setup-textarea:focus { border-color:var(--primary); }
+        .setup-actions { display:flex; gap:10px; margin-top:16px; }
+
         /* ── TABLE PREVIEW ── */
         .preview-overlay {
             position: fixed;
@@ -607,9 +650,13 @@
     <div class="header">
         <div>
             <div class="header-title">Dzienniczek Mikcji</div>
-            <div class="header-sub">Dziennik oddawania moczu</div>
+            <div class="header-user" id="headerUser">Dziennik oddawania moczu</div>
         </div>
-        <button class="btn-reset" onclick="resetData()">Nowy pacjent</button>
+        <div style="display:flex;gap:8px;align-items:center">
+            <span class="sync-dot" id="syncDot" title="Status chmury"></span>
+            <button class="btn-header" onclick="openCloudSetup()" title="Konfiguracja chmury">☁️</button>
+            <button class="btn-reset" onclick="handleLogout()">Wyloguj</button>
+        </div>
     </div>
 
     <!-- PATIENT -->
@@ -632,6 +679,56 @@
             Dzień 3<span class="tab-count" id="cnt3">– wpisów</span>
         </button>
     </div>
+
+<!-- LOGIN SCREEN -->
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+        <div class="login-logo">🏥</div>
+        <div class="login-title">Dzienniczek Mikcji</div>
+        <div class="login-sub">Zaloguj się, aby Twoje dane były dostępne na każdym urządzeniu</div>
+        <div class="login-tabs">
+            <button class="login-tab active" id="tabLogin" onclick="switchAuthTab('login')">Zaloguj się</button>
+            <button class="login-tab" id="tabRegister" onclick="switchAuthTab('register')">Zarejestruj</button>
+        </div>
+        <div class="login-field">
+            <input type="email" class="login-input" id="authEmail" placeholder="Adres e-mail" inputmode="email" autocomplete="email">
+        </div>
+        <div class="login-field">
+            <input type="password" class="login-input" id="authPassword" placeholder="Hasło (min. 6 znaków)" autocomplete="current-password">
+        </div>
+        <button class="login-btn" id="authSubmitBtn" onclick="handleAuth()">Zaloguj się</button>
+        <div class="login-error" id="authError"></div>
+        <div class="login-divider">Potrzebujesz konfiguracji Firebase? <a href="#" onclick="openCloudSetup();return false">Kliknij tutaj</a></div>
+    </div>
+</div>
+
+<!-- FIREBASE SETUP MODAL -->
+<div class="setup-overlay hidden" id="setupOverlay">
+    <div class="setup-card">
+        <div class="setup-title">☁️ Konfiguracja synchronizacji</div>
+        <div class="setup-desc">Aby dane były dostępne na wszystkich urządzeniach, połącz aplikację z Firebase (bezpłatnie).</div>
+        <div class="setup-steps">
+            <strong>Instrukcja (raz na zawsze):</strong><br>
+            1. Wejdź na <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a><br>
+            2. Utwórz nowy projekt (np. "mikcja-dziennik")<br>
+            3. Dodaj aplikację webową (ikona &lt;/&gt;)<br>
+            4. Skopiuj obiekt <code>firebaseConfig</code> i wklej poniżej<br>
+            5. W projekcie: <strong>Build → Realtime Database → Create database</strong><br>
+            6. Wybierz <em>Start in test mode</em><br>
+            7. W projekcie: <strong>Authentication → Sign-in method → Email/Password → Enable</strong>
+        </div>
+        <label class="field-label">Wklej konfigurację Firebase (firebaseConfig):</label>
+        <textarea class="setup-textarea" id="fbConfigInput" placeholder='{"apiKey":"...","authDomain":"...","databaseURL":"...","projectId":"...","appId":"..."}'></textarea>
+        <div id="setupError" style="color:var(--red);font-size:13px;margin-top:8px;"></div>
+        <div class="setup-actions">
+            <button class="btn-action btn-cancel" style="flex:1;padding:14px;border-radius:12px;border:none;background:#f1f5f9;color:#64748b;font-size:15px;font-weight:700;cursor:pointer" onclick="closeSetup()">Anuluj</button>
+            <button class="btn-action btn-save" style="flex:1;padding:14px;border-radius:12px;border:none;background:var(--primary);color:white;font-size:15px;font-weight:700;cursor:pointer" onclick="saveFirebaseConfig()">Połącz</button>
+        </div>
+        <div style="text-align:center;margin-top:12px">
+            <button onclick="clearFirebaseConfig()" style="background:none;border:none;color:var(--red);font-size:12px;cursor:pointer">Usuń konfigurację</button>
+        </div>
+    </div>
+</div>
 
     <!-- SYNC BAR -->
     <div class="sync-bar">
@@ -836,6 +933,7 @@ function load() {
 
 function save() {
     localStorage.setItem('mikcja_v1', JSON.stringify(state));
+    saveToCloud();
 }
 
 function onPatientChange(v) {
@@ -1237,6 +1335,155 @@ function exportPDF() {
     doc.save(fname);
 }
 
+// ── FIREBASE / CLOUD SYNC ────────────────────────────────────────────────
+let fbDb = null;
+let fbAuth = null;
+let currentUser = null;
+let syncTimer = null;
+
+function initFirebase() {
+    const raw = localStorage.getItem('mikcja_fb_cfg');
+    if (!raw) { showLogin(); return; }
+    try {
+        const cfg = JSON.parse(raw);
+        if (!firebase.apps.length) firebase.initializeApp(cfg);
+        fbAuth = firebase.auth();
+        fbDb   = firebase.database();
+        fbAuth.onAuthStateChanged(user => {
+            currentUser = user;
+            if (user) {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('headerUser').textContent = user.email;
+                loadFromCloud();
+            } else {
+                showLogin();
+            }
+        });
+    } catch(e) {
+        showLogin();
+    }
+}
+
+function showLogin() {
+    document.getElementById('loginOverlay').classList.remove('hidden');
+    document.getElementById('headerUser').textContent = 'Dziennik oddawania moczu';
+    setSyncDot('');
+}
+
+function switchAuthTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('tabLogin').classList.toggle('active', isLogin);
+    document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+    document.getElementById('authSubmitBtn').textContent = isLogin ? 'Zaloguj się' : 'Zarejestruj';
+    document.getElementById('authError').textContent = '';
+}
+
+async function handleAuth() {
+    const email = document.getElementById('authEmail').value.trim();
+    const pass  = document.getElementById('authPassword').value;
+    const isLogin = document.getElementById('tabLogin').classList.contains('active');
+    document.getElementById('authError').textContent = '';
+    if (!email || !pass) { document.getElementById('authError').textContent = 'Wypełnij wszystkie pola.'; return; }
+    try {
+        if (isLogin) {
+            await fbAuth.signInWithEmailAndPassword(email, pass);
+        } else {
+            await fbAuth.createUserWithEmailAndPassword(email, pass);
+        }
+    } catch(e) {
+        document.getElementById('authError').textContent = authErrMsg(e.code);
+    }
+}
+
+function authErrMsg(code) {
+    return ({
+        'auth/user-not-found':     'Nie znaleziono konta dla tego e-maila.',
+        'auth/wrong-password':     'Nieprawidłowe hasło.',
+        'auth/invalid-credential': 'Nieprawidłowy e-mail lub hasło.',
+        'auth/email-already-in-use':'Ten e-mail jest już zarejestrowany.',
+        'auth/weak-password':      'Hasło musi mieć min. 6 znaków.',
+        'auth/invalid-email':      'Nieprawidłowy adres e-mail.',
+        'auth/too-many-requests':  'Zbyt wiele prób. Spróbuj za chwilę.',
+        'auth/network-request-failed': 'Brak połączenia z internetem.',
+    })[code] || ('Błąd: ' + code);
+}
+
+async function handleLogout() {
+    if (!fbAuth) return;
+    if (!confirm('Wylogować się?')) return;
+    await fbAuth.signOut();
+    state = { patientName: '', days: [[], [], []] };
+    document.getElementById('patientName').value = '';
+    render();
+}
+
+function saveToCloud() {
+    if (!fbDb || !currentUser) return;
+    setSyncDot('busy');
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(async () => {
+        try {
+            await fbDb.ref(`users/${currentUser.uid}/mikcja`).set(state);
+            setSyncDot('ok');
+        } catch(e) { setSyncDot('error'); }
+    }, 1500);
+}
+
+async function loadFromCloud() {
+    if (!fbDb || !currentUser) return;
+    setSyncDot('busy');
+    try {
+        const snap = await fbDb.ref(`users/${currentUser.uid}/mikcja`).get();
+        if (snap.exists()) {
+            const d = snap.val();
+            if (d && Array.isArray(d.days)) {
+                state = d;
+                while (state.days.length < 3) state.days.push([]);
+                localStorage.setItem('mikcja_v1', JSON.stringify(state));
+                document.getElementById('patientName').value = state.patientName || '';
+                render();
+            }
+        }
+        setSyncDot('ok');
+    } catch(e) { setSyncDot('error'); }
+}
+
+function setSyncDot(status) {
+    const dot = document.getElementById('syncDot');
+    dot.className = 'sync-dot' + (status ? ' ' + status : '');
+    dot.title = {ok:'Zsynchronizowano ✓', busy:'Synchronizacja…', error:'Błąd synchronizacji ✗', '':'Brak chmury'}[status] || '';
+}
+
+// Firebase config setup
+function openCloudSetup() {
+    const raw = localStorage.getItem('mikcja_fb_cfg');
+    if (raw) document.getElementById('fbConfigInput').value = raw;
+    document.getElementById('setupError').textContent = '';
+    document.getElementById('setupOverlay').classList.remove('hidden');
+}
+function closeSetup() { document.getElementById('setupOverlay').classList.add('hidden'); }
+
+function saveFirebaseConfig() {
+    const raw = document.getElementById('fbConfigInput').value.trim();
+    try {
+        // accept either raw JSON or the full "const firebaseConfig = {...}" format
+        const jsonStr = raw.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+        const cfg = JSON.parse(jsonStr);
+        if (!cfg.apiKey || !cfg.databaseURL) throw new Error('Brak wymaganych pól (apiKey, databaseURL)');
+        localStorage.setItem('mikcja_fb_cfg', JSON.stringify(cfg));
+        closeSetup();
+        location.reload();
+    } catch(e) {
+        document.getElementById('setupError').textContent = 'Błąd: ' + e.message + '. Sprawdź czy wkleiłeś poprawny JSON.';
+    }
+}
+
+function clearFirebaseConfig() {
+    if (!confirm('Usunąć konfigurację Firebase?')) return;
+    localStorage.removeItem('mikcja_fb_cfg');
+    location.reload();
+}
+
 // ── EXPORT / IMPORT ──────────────────────────────────────────────────────
 function exportData() {
     const blob = new Blob([JSON.stringify(state, null, 2)], {type: 'application/json'});
@@ -1350,6 +1597,7 @@ function buildPreviewTable() {
 // ── INIT ──────────────────────────────────────────────────────────────────
 load();
 render();
+initFirebase();
 </script>
 </body>
 </html>
