@@ -178,11 +178,19 @@
         }
         .entry-card.has-leak { border-left-color: var(--amber); }
         .entry-hour {
-            font-size: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            min-width: 64px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .entry-precise-time {
+            font-size: 21px;
             font-weight: 800;
             color: var(--primary);
-            min-width: 58px;
-            white-space: nowrap;
+            display: block;
+            margin-bottom: 2px;
         }
         .entry-body { flex: 1; min-width: 0; }
         .entry-stats {
@@ -340,6 +348,16 @@
         .hour-btn.selected.has-data::after { color: #90cdf4; }
         .hour-btn:active { transform: scale(0.93); }
 
+        /* Time input */
+        .time-input {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--primary);
+            text-align: center;
+            letter-spacing: 2px;
+            padding: 12px 16px;
+        }
+
         /* Numeric inputs */
         .num-input {
             width: 100%;
@@ -488,11 +506,18 @@
         <div class="modal-title" id="modalTitle">Dodaj wpis</div>
 
         <!-- Auto time -->
-        <button class="auto-time-btn" onclick="setCurrentHour()">⏱ Ustaw aktualną godzinę</button>
+        <button class="auto-time-btn" onclick="setCurrentTime()">⏱ Ustaw aktualną godzinę</button>
+
+        <!-- Precise time -->
+        <div class="form-group">
+            <label class="field-label" for="inputTime">Dokładna godzina zdarzenia</label>
+            <input type="time" class="num-input time-input" id="inputTime"
+                   oninput="onTimeInput(this.value)" />
+        </div>
 
         <!-- Hour grid -->
         <div class="form-group">
-            <label class="field-label">Przedział godzinowy</label>
+            <label class="field-label">Przedział godzinowy <span style="font-weight:400;text-transform:none;color:#94a3b8">(auto-wybierany po wpisaniu godziny)</span></label>
             <div class="hour-grid" id="hourGrid"></div>
         </div>
 
@@ -647,7 +672,10 @@ function render() {
             : '';
         return `
         <div class="entry-card${hasLeak ? ' has-leak' : ''}">
-            <div class="entry-hour">${HOURS[e.hour]}</div>
+            <div class="entry-hour">
+                ${e.time ? `<span class="entry-precise-time">${e.time}</span>` : ''}
+                ${HOURS[e.hour]}
+            </div>
             <div class="entry-body">
                 <div class="entry-stats">
                     <div class="entry-stat">Płyny: <strong>${e.fluids|0} ml</strong></div>
@@ -695,11 +723,24 @@ function pickHour(i) {
     });
 }
 
-function setCurrentHour() {
-    const h = new Date().getHours();
+function setCurrentTime() {
+    const now = new Date();
+    const h = now.getHours();
+    const m = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('inputTime').value = `${String(h).padStart(2,'0')}:${m}`;
     pickHour(h);
     const btn = document.querySelector(`.hour-btn[data-i="${h}"]`);
     if (btn) btn.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function onTimeInput(val) {
+    if (!val) return;
+    const h = parseInt(val.split(':')[0], 10);
+    if (h >= 0 && h < 24) {
+        pickHour(h);
+        const btn = document.querySelector(`.hour-btn[data-i="${h}"]`);
+        if (btn) btn.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }
 }
 
 function pickUrge(v) {
@@ -721,6 +762,7 @@ function pickLeak(v) {
 
 function clearForm() {
     selHour = null; selUrge = null; selLeak = null;
+    document.getElementById('inputTime').value = '';
     document.getElementById('inputFluids').value = '';
     document.getElementById('inputUrine').value = '';
     document.querySelectorAll('.hour-btn').forEach(b => b.classList.remove('selected'));
@@ -745,6 +787,7 @@ function openEditModal(id) {
     document.getElementById('modalTitle').textContent = 'Edytuj wpis';
     buildHourGrid();
     clearForm();
+    document.getElementById('inputTime').value = e.time || '';
     document.getElementById('inputFluids').value = e.fluids || '';
     document.getElementById('inputUrine').value = e.urine || '';
     selHour = e.hour;
@@ -772,12 +815,13 @@ function saveEntry() {
     }
     const fluids = parseInt(document.getElementById('inputFluids').value) || 0;
     const urine = parseInt(document.getElementById('inputUrine').value) || 0;
+    const time = document.getElementById('inputTime').value || null;
     const days = state.days[curDay];
 
     if (editing) {
         const idx = days.findIndex(e => e.id === editing);
         if (idx !== -1) {
-            days[idx] = { ...days[idx], hour: selHour, fluids, urine, urge: selUrge, leak: selLeak };
+            days[idx] = { ...days[idx], hour: selHour, fluids, urine, urge: selUrge, leak: selLeak, time };
         }
     } else {
         const dup = days.find(e => e.hour === selHour);
@@ -788,7 +832,7 @@ function saveEntry() {
         state.days[curDay].push({
             id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
             hour: selHour, fluids, urine,
-            urge: selUrge, leak: selLeak
+            urge: selUrge, leak: selLeak, time
         });
     }
 
@@ -833,13 +877,14 @@ function exportPDF() {
             const e = (state.days[d]||[]).find(x => x.hour === h);
             if (e) {
                 row.push(
-                    e.fluids ? String(e.fluids) : '',
-                    e.urine  ? String(e.urine)  : '',
+                    e.time   ? e.time            : '',
+                    e.fluids ? String(e.fluids)  : '',
+                    e.urine  ? String(e.urine)   : '',
                     e.urge   ? urgeShort(e.urge) : '',
                     e.leak   ? e.leak            : ''
                 );
             } else {
-                row.push('', '', '', '');
+                row.push('', '', '', '', '');
             }
         }
         bodyRows.push(row);
@@ -852,6 +897,7 @@ function exportPDF() {
         const sf = entries.reduce((s,e) => s + (e.fluids|0), 0);
         const su = entries.reduce((s,e) => s + (e.urine|0), 0);
         sumRow.push(
+            '',
             { content: sf ? String(sf) : '', styles: { fontStyle: 'bold' } },
             { content: su ? String(su) : '', styles: { fontStyle: 'bold' } },
             '', ''
@@ -863,14 +909,14 @@ function exportPDF() {
         head: [
             [
                 { content: 'Godzina', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-                { content: 'Dzień 1', colSpan: 4, styles: { halign: 'center' } },
-                { content: 'Dzień 2', colSpan: 4, styles: { halign: 'center' } },
-                { content: 'Dzień 3', colSpan: 4, styles: { halign: 'center' } }
+                { content: 'Dzień 1', colSpan: 5, styles: { halign: 'center' } },
+                { content: 'Dzień 2', colSpan: 5, styles: { halign: 'center' } },
+                { content: 'Dzień 3', colSpan: 5, styles: { halign: 'center' } }
             ],
             [
-                'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie',
-                'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie',
-                'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie'
+                'Czas', 'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie',
+                'Czas', 'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie',
+                'Czas', 'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie'
             ]
         ],
         body: bodyRows,
@@ -878,7 +924,7 @@ function exportPDF() {
         theme: 'grid',
         styles: {
             fontSize: 7,
-            cellPadding: 2.2,
+            cellPadding: 2,
             halign: 'center',
             valign: 'middle',
             lineColor: [180, 180, 180],
@@ -889,18 +935,20 @@ function exportPDF() {
             textColor: 255,
             fontStyle: 'bold',
             fontSize: 7,
-            cellPadding: 2.5
+            cellPadding: 2
         },
         columnStyles: {
-            0: { cellWidth: 20, fontStyle: 'bold', fillColor: [240, 245, 255] }
+            0:  { cellWidth: 18, fontStyle: 'bold', fillColor: [240, 245, 255] },
+            1:  { cellWidth: 13 }, // Czas D1
+            6:  { cellWidth: 13 }, // Czas D2
+            11: { cellWidth: 13 }  // Czas D3
         },
         didParseCell(data) {
-            // Sum row styling
             if (data.section === 'body' && data.row.index === 24) {
                 data.cell.styles.fillColor = [219, 234, 254];
             }
         },
-        margin: { left: 14, right: 14 }
+        margin: { left: 10, right: 10 }
     });
 
     // Legend
