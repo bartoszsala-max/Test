@@ -500,6 +500,18 @@
         .btn-action:active { transform: scale(0.97); }
         .btn-save { background: var(--primary); color: white; }
         .btn-cancel { background: var(--bg); color: var(--muted); }
+        .modal-toast {
+            display: none;
+            background: #ef4444;
+            color: white;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .modal-toast.visible { display: block; }
 
         /* Legend */
         .legend {
@@ -1068,9 +1080,10 @@
             </div>
         </div>
 
+        <div class="modal-toast" id="modalToast"></div>
         <div class="form-actions">
-            <button class="btn-action btn-cancel" onclick="closeModal()">Anuluj</button>
-            <button class="btn-action btn-save" onclick="saveEntry()">Zapisz</button>
+            <button type="button" class="btn-action btn-cancel" onclick="closeModal()">Anuluj</button>
+            <button type="button" class="btn-action btn-save" onclick="saveEntry()">Zapisz</button>
         </div>
     </div>
 </div>
@@ -1178,7 +1191,7 @@ function render() {
         const hasFluids = (e.fluids|0) > 0;
         const hasUrine  = (e.urine|0)  > 0;
         const typeClass = hasFluids && hasUrine ? 'type-both' : hasFluids ? 'type-drink' : hasUrine ? 'type-urine' : '';
-        const typeIcon  = hasFluids && hasUrine ? '🔄' : hasFluids ? '💧' : hasUrine ? '🚿' : '📋';
+        const typeIcon  = hasFluids && hasUrine ? '🍶💛' : hasFluids ? '🍶' : hasUrine ? '💛' : '📋';
         const drinkBadge = e.drink
             ? `<span class="badge badge-drink">${drinkLabel(e.drink)}</span>`
             : '';
@@ -1317,6 +1330,8 @@ function openAddModal() {
     document.getElementById('modalTitle').textContent = 'Dodaj wpis';
     buildHourGrid();
     clearForm();
+    // Auto-select current hour so user can tap Save immediately
+    setCurrentTime();
     document.getElementById('modalOverlay').classList.remove('hidden');
     document.getElementById('modal').scrollTop = 0;
 }
@@ -1351,9 +1366,16 @@ function onOverlayClick(ev) {
     if (ev.target === document.getElementById('modalOverlay')) closeModal();
 }
 
+function showModalToast(msg) {
+    const t = document.getElementById('modalToast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    setTimeout(() => t.classList.remove('visible'), 2500);
+}
+
 function saveEntry() {
     if (selHour === null) {
-        alert('Wybierz przedział godzinowy!');
+        showModalToast('⚠️ Wybierz przedział godzinowy!');
         return;
     }
     const fluids = parseInt(document.getElementById('inputFluids').value) || 0;
