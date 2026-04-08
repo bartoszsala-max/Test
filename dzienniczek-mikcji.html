@@ -289,7 +289,52 @@
         }
         .action-btn:active { transform: scale(0.96); }
         .action-btn-preview { border-color: #7c3aed; color: #7c3aed; background: #faf5ff; }
+        .action-btn-drinks  { border-color: #0891b2; color: #0891b2; background: #ecfeff; }
         .action-btn-pdf     { border-color: var(--green); color: var(--green); background: var(--green-light); }
+
+        /* ── DRINK ANALYSIS OVERLAY ── */
+        .drinks-overlay {
+            position: fixed; inset: 0; background: #f1f5f9;
+            z-index: 300; display: flex; flex-direction: column;
+        }
+        .drinks-overlay.hidden { display: none; }
+        .drinks-header {
+            background: linear-gradient(135deg, #0e7490, #0891b2);
+            color: white; padding: 16px 18px;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0; box-shadow: 0 2px 10px rgba(8,145,178,0.3);
+        }
+        .drinks-header h2 { font-size: 17px; font-weight: 800; }
+        .drinks-header-sub { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+        .drinks-close {
+            background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+            color: white; border-radius: 9px; padding: 8px 16px;
+            font-size: 14px; font-weight: 700; cursor: pointer;
+        }
+        .drinks-body { flex: 1; overflow-y: auto; padding: 16px 18px 40px; }
+        .drinks-total-card {
+            background: linear-gradient(135deg, #0e7490, #0891b2);
+            border-radius: 18px; padding: 18px 22px; margin-bottom: 16px;
+            color: white; display: flex; justify-content: space-around;
+        }
+        .drinks-total-item { text-align: center; }
+        .drinks-total-value { font-size: 28px; font-weight: 900; line-height: 1; }
+        .drinks-total-label { font-size: 11px; opacity: 0.8; margin-top: 4px; font-weight: 600; }
+        .drinks-section-title {
+            font-size: 11px; font-weight: 800; color: #64748b;
+            text-transform: uppercase; letter-spacing: 0.07em; margin: 16px 0 10px;
+        }
+        .drink-row {
+            background: white; border-radius: 16px; padding: 14px 18px;
+            margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .drink-row-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .drink-name { font-size: 15px; font-weight: 800; color: #0f172a; }
+        .drink-ml { font-size: 15px; font-weight: 800; color: #0891b2; }
+        .drink-meta { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+        .drink-bar-bg { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+        .drink-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #0891b2, #22d3ee); transition: width 0.5s ease; }
+        .drinks-empty { text-align: center; padding: 60px 20px; color: #94a3b8; font-size: 14px; }
 
 
         /* ── MODAL ── */
@@ -786,8 +831,11 @@
         <button class="action-btn action-btn-preview" onclick="openPreview()">
             📊 Podgląd tabeli
         </button>
+        <button class="action-btn action-btn-drinks" onclick="openDrinkAnalysis()">
+            🥤 Napoje
+        </button>
         <button class="action-btn action-btn-pdf" onclick="exportPDF()">
-            📄 Eksport PDF
+            📄 PDF
         </button>
     </div>
 
@@ -861,6 +909,18 @@
         <div class="th-preview" style="background:linear-gradient(135deg,#0369a1,#0ea5e9)"></div>
         Ocean
     </button>
+</div>
+
+<!-- DRINK ANALYSIS OVERLAY -->
+<div class="drinks-overlay hidden" id="drinksOverlay">
+    <div class="drinks-header">
+        <div>
+            <h2>🥤 Analiza napojów</h2>
+            <div class="drinks-header-sub">Zestawienie przyjmowanych płynów – 3 doby</div>
+        </div>
+        <button class="drinks-close" onclick="closeDrinkAnalysis()">✕ Zamknij</button>
+    </div>
+    <div class="drinks-body" id="drinksBody"></div>
 </div>
 
 <!-- TABLE PREVIEW OVERLAY -->
@@ -1703,6 +1763,96 @@ function setSyncDot(status, errorMsg) {
 
 
 // ── TABLE PREVIEW ────────────────────────────────────────────────────────
+// ── DRINK ANALYSIS ────────────────────────────────────────────────────────
+function openDrinkAnalysis() {
+    const allEntries = state.days.flat();
+    const body = document.getElementById('drinksBody');
+
+    if (allEntries.length === 0) {
+        body.innerHTML = '<div class="drinks-empty">Brak wpisów do analizy.</div>';
+        document.getElementById('drinksOverlay').classList.remove('hidden');
+        return;
+    }
+
+    // Aggregate by drink type
+    const map = {};
+    let totalFluids = 0, totalEntries = 0;
+    allEntries.forEach(e => {
+        const key = e.drink || '_brak';
+        if (!map[key]) map[key] = { ml: 0, count: 0 };
+        map[key].ml    += e.fluids|0;
+        map[key].count += (e.fluids > 0) ? 1 : 0;
+        totalFluids += e.fluids|0;
+        totalEntries++;
+    });
+
+    const maxMl = Math.max(...Object.values(map).map(v => v.ml), 1);
+    const sorted = Object.entries(map).sort((a,b) => b[1].ml - a[1].ml);
+
+    const DRINK_META = {
+        woda:    { label:'Woda',           icon:'💧', color:'#0284c7' },
+        kawa:    { label:'Kawa',           icon:'☕', color:'#92400e' },
+        herbata: { label:'Herbata',        icon:'🍵', color:'#16a34a' },
+        piwo:    { label:'Piwo',           icon:'🍺', color:'#d97706' },
+        piwo_b:  { label:'Piwo bezalk.',   icon:'🥤', color:'#7c3aed' },
+        jogurt:  { label:'Jogurt',         icon:'🥛', color:'#0d9488' },
+        _brak:   { label:'Nieokreślony',   icon:'–',  color:'#94a3b8' },
+    };
+
+    const rows = sorted.map(([key, val]) => {
+        const meta = DRINK_META[key] || { label: key, icon:'🫗', color:'#64748b' };
+        const pct = Math.round((val.ml / maxMl) * 100);
+        const share = totalFluids > 0 ? Math.round((val.ml / totalFluids) * 100) : 0;
+        return `
+        <div class="drink-row">
+            <div class="drink-row-top">
+                <div class="drink-name">${meta.icon} ${meta.label}</div>
+                <div class="drink-ml">${val.ml} ml</div>
+            </div>
+            <div class="drink-meta">${val.count} ${val.count === 1 ? 'zdarzenie' : 'zdarzeń'} &nbsp;·&nbsp; ${share}% całości</div>
+            <div class="drink-bar-bg">
+                <div class="drink-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${meta.color},${meta.color}99)"></div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Per-day breakdown
+    const dayRows = state.days.map((day, i) => {
+        const df = day.reduce((s,e) => s + (e.fluids|0), 0);
+        return `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:14px">
+            <span style="font-weight:700;color:#0f172a">Dzień ${i+1}</span>
+            <span style="font-weight:800;color:#0891b2">${df} ml</span>
+        </div>`;
+    }).join('');
+
+    body.innerHTML = `
+        <div class="drinks-total-card">
+            <div class="drinks-total-item">
+                <div class="drinks-total-value">${totalFluids}</div>
+                <div class="drinks-total-label">ml łącznie</div>
+            </div>
+            <div class="drinks-total-item" style="border-left:1px solid rgba(255,255,255,0.2)">
+                <div class="drinks-total-value">${sorted.filter(([k])=>k!=='_brak').length}</div>
+                <div class="drinks-total-label">rodzajów</div>
+            </div>
+            <div class="drinks-total-item" style="border-left:1px solid rgba(255,255,255,0.2)">
+                <div class="drinks-total-value">${totalFluids > 0 ? Math.round(totalFluids / Math.max(state.days.filter(d=>d.length>0).length,1)) : 0}</div>
+                <div class="drinks-total-label">ml / dzień</div>
+            </div>
+        </div>
+        <div class="drinks-section-title">Według rodzaju napoju</div>
+        ${rows}
+        <div class="drinks-section-title">Według dnia</div>
+        <div style="background:white;border-radius:16px;padding:6px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">${dayRows}</div>
+    `;
+
+    document.getElementById('drinksOverlay').classList.remove('hidden');
+}
+
+function closeDrinkAnalysis() {
+    document.getElementById('drinksOverlay').classList.add('hidden');
+}
+
 function openPreview() {
     document.getElementById('previewPatientLabel').textContent =
         state.patientName || 'Brak danych pacjenta';
