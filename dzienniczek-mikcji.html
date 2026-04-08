@@ -484,6 +484,13 @@
         .seg-btn.sel-urge-red { background: var(--red-light); border-color: var(--red); color: var(--red); }
         .seg-btn.sel-leak { background: var(--amber-light); border-color: var(--amber); color: #92400e; }
         .seg-btn.sel-drink { background: #ecfdf5; border-color: #10b981; color: #065f46; }
+        .day-sel-group { display: flex; gap: 6px; margin-bottom: 18px; }
+        .day-sel-btn {
+            flex: 1; padding: 10px 4px; border-radius: 10px; border: 2px solid var(--border);
+            background: var(--bg); font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer;
+            transition: all 0.15s;
+        }
+        .day-sel-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
         .badge-drink { background: #d1fae5; color: #065f46; }
 
         /* Form actions */
@@ -1005,6 +1012,13 @@
         <div class="modal-handle"></div>
         <div class="modal-title" id="modalTitle">Dodaj wpis</div>
 
+        <!-- Day selector -->
+        <div class="day-sel-group" id="daySel">
+            <button type="button" class="day-sel-btn" data-d="0" onclick="pickModalDay(0)">Dzień 1</button>
+            <button type="button" class="day-sel-btn" data-d="1" onclick="pickModalDay(1)">Dzień 2</button>
+            <button type="button" class="day-sel-btn" data-d="2" onclick="pickModalDay(2)">Dzień 3</button>
+        </div>
+
         <!-- Auto time -->
         <button class="auto-time-btn" onclick="setCurrentTime()">⏱ Ustaw aktualną godzinę</button>
 
@@ -1115,6 +1129,7 @@ let selUrge = null;
 let selLeak = null;
 let selDrink = null;
 let selNight = null;
+let selModalDay = 0;
 
 // ── PERSISTENCE ─────────────────────────────────────────────────────────
 function load() {
@@ -1263,7 +1278,7 @@ function drinkShort(v) {
 // ── MODAL ────────────────────────────────────────────────────────────────
 function buildHourGrid() {
     const countMap = {};
-    (state.days[curDay]||[]).forEach(e => {
+    (state.days[selModalDay]||[]).forEach(e => {
         if (editing && e.id === editing) return;
         countMap[e.hour] = (countMap[e.hour] || 0) + 1;
     });
@@ -1332,6 +1347,14 @@ function pickDrink(v) {
     });
 }
 
+function pickModalDay(d) {
+    selModalDay = d;
+    document.querySelectorAll('#daySel .day-sel-btn').forEach(b =>
+        b.classList.toggle('active', +b.dataset.d === d)
+    );
+    buildHourGrid(); // rebuild grid with correct day's existing entries
+}
+
 function pickNight(v) {
     selNight = (selNight === v) ? null : v;
     document.querySelectorAll('#nightGroup .seg-btn').forEach(b =>
@@ -1353,9 +1376,9 @@ function clearForm() {
 function openAddModal() {
     editing = null;
     document.getElementById('modalTitle').textContent = 'Dodaj wpis';
-    buildHourGrid();
+    selModalDay = curDay;
+    pickModalDay(curDay);
     clearForm();
-    // Auto-select current hour so user can tap Save immediately
     setCurrentTime();
     document.getElementById('modalOverlay').classList.remove('hidden');
     document.getElementById('modal').scrollTop = 0;
@@ -1365,8 +1388,9 @@ function openEditModal(id) {
     const e = (state.days[curDay]||[]).find(x => x.id === id);
     if (!e) return;
     editing = id;
+    selModalDay = curDay;
     document.getElementById('modalTitle').textContent = 'Edytuj wpis';
-    buildHourGrid();
+    pickModalDay(curDay);
     clearForm();
     document.getElementById('inputTime').value = e.time || '';
     document.getElementById('inputFluids').value = e.fluids || '';
@@ -1408,7 +1432,8 @@ function saveEntry() {
     const fluids = parseInt(document.getElementById('inputFluids').value) || 0;
     const urine = parseInt(document.getElementById('inputUrine').value) || 0;
     const time = document.getElementById('inputTime').value || null;
-    const days = state.days[curDay];
+    const targetDay = editing ? curDay : selModalDay;
+    const days = state.days[targetDay];
     if (!state.dayDates) state.dayDates = [null, null, null];
 
     if (editing) {
@@ -1417,10 +1442,10 @@ function saveEntry() {
             days[idx] = { ...days[idx], hour: selHour, fluids, urine, urge: selUrge, leak: selLeak, time, drink: selDrink, night: selNight };
         }
     } else {
-        if (!editing && !state.dayDates[curDay]) {
-            state.dayDates[curDay] = new Date().toISOString().slice(0, 10);
+        if (!state.dayDates[targetDay]) {
+            state.dayDates[targetDay] = new Date().toISOString().slice(0, 10);
         }
-        state.days[curDay].push({
+        state.days[targetDay].push({
             id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
             hour: selHour, fluids, urine,
             urge: selUrge, leak: selLeak, time, drink: selDrink, night: selNight
