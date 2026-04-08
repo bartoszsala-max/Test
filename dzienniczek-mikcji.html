@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Dzienniczek Mikcji</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -602,6 +603,46 @@
             padding: 10px 14px;
         }
         .fab-table { background: #7c3aed; color: white; }
+
+        /* ── CHART ── */
+        .chart-card {
+            margin: 0 18px 14px;
+            background: white;
+            border-radius: 20px;
+            padding: 20px 20px 16px;
+            box-shadow: var(--shadow);
+        }
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .chart-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .chart-legend {
+            display: flex;
+            gap: 14px;
+        }
+        .chart-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+        .chart-legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .chart-wrap { position: relative; height: 200px; }
     </style>
 </head>
 <body>
@@ -679,6 +720,21 @@
         <button class="action-btn action-btn-pdf" onclick="exportPDF()">
             📄 Eksport PDF
         </button>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <div class="chart-title">Bilans 3 dni</div>
+            <div class="chart-legend">
+                <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#2563eb"></div>Napoje</div>
+                <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#10b981"></div>Mikcja</div>
+                <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#f59e0b"></div>Net</div>
+            </div>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="balanceChart"></canvas>
+        </div>
     </div>
 
     <!-- SUMMARY -->
@@ -908,6 +964,8 @@ function render() {
     document.getElementById('sumFluids').textContent = sumF;
     document.getElementById('sumUrine').textContent = sumU;
     document.getElementById('sumCount').textContent = entries.length;
+
+    updateChart();
 
     // Entry list
     const list = document.getElementById('entriesList');
@@ -1277,6 +1335,98 @@ let fbDb = null;
 let fbAuth = null;
 let currentUser = null;
 let syncTimer = null;
+
+// ── CHART ────────────────────────────────────────────────────────────────
+let balanceChart = null;
+
+function updateChart() {
+    const totals = state.days.map(day => ({
+        fluids: day.reduce((s,e) => s + (e.fluids|0), 0),
+        urine:  day.reduce((s,e) => s + (e.urine|0),  0),
+    }));
+    const napoje = totals.map(t => t.fluids);
+    const mikcja = totals.map(t => t.urine);
+    const net    = totals.map(t => t.fluids - t.urine);
+    const labels = ['Dzień 1','Dzień 2','Dzień 3'];
+
+    if (!balanceChart) {
+        const ctx = document.getElementById('balanceChart').getContext('2d');
+        balanceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Napoje',
+                        data: napoje,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37,99,235,0.08)',
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#2563eb',
+                        pointRadius: 5,
+                        tension: 0.35,
+                        fill: true,
+                    },
+                    {
+                        label: 'Mikcja',
+                        data: mikcja,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16,185,129,0.08)',
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#10b981',
+                        pointRadius: 5,
+                        tension: 0.35,
+                        fill: true,
+                    },
+                    {
+                        label: 'Net',
+                        data: net,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245,158,11,0.06)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#f59e0b',
+                        pointRadius: 5,
+                        borderDash: [5, 4],
+                        tension: 0.35,
+                        fill: false,
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} ml`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 12, weight: '700' }, color: '#64748b' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            font: { size: 11 },
+                            color: '#94a3b8',
+                            callback: v => v + ' ml'
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        balanceChart.data.datasets[0].data = napoje;
+        balanceChart.data.datasets[1].data = mikcja;
+        balanceChart.data.datasets[2].data = net;
+        balanceChart.update();
+    }
+}
 
 function initFirebase() {
     try {
