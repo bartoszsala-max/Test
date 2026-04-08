@@ -398,6 +398,8 @@
         .seg-btn.sel-urge { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
         .seg-btn.sel-urge-red { background: var(--red-light); border-color: var(--red); color: var(--red); }
         .seg-btn.sel-leak { background: var(--amber-light); border-color: var(--amber); color: #92400e; }
+        .seg-btn.sel-drink { background: #ecfdf5; border-color: #10b981; color: #065f46; }
+        .badge-drink { background: #d1fae5; color: #065f46; }
 
         /* Form actions */
         .form-actions { display: flex; gap: 10px; margin-top: 26px; }
@@ -528,6 +530,18 @@
                    placeholder="0" min="0" max="9999" inputmode="numeric" />
         </div>
 
+        <!-- Drink type -->
+        <div class="form-group">
+            <label class="field-label">Rodzaj napoju</label>
+            <div class="seg-group" id="drinkGroup">
+                <button class="seg-btn" data-val="woda"    onclick="pickDrink('woda')">💧<small>Woda</small></button>
+                <button class="seg-btn" data-val="kawa"    onclick="pickDrink('kawa')">☕<small>Kawa</small></button>
+                <button class="seg-btn" data-val="herbata" onclick="pickDrink('herbata')">🍵<small>Herbata</small></button>
+                <button class="seg-btn" data-val="piwo"    onclick="pickDrink('piwo')">🍺<small>Piwo</small></button>
+                <button class="seg-btn" data-val="piwo_b"  onclick="pickDrink('piwo_b')">🥤<small>Piwo bezalk.</small></button>
+            </div>
+        </div>
+
         <!-- Urine -->
         <div class="form-group">
             <label class="field-label" for="inputUrine">Ilość moczu (ml)</label>
@@ -589,6 +603,7 @@ let editing = null; // entry id being edited
 let selHour = null;
 let selUrge = null;
 let selLeak = null;
+let selDrink = null;
 
 // ── PERSISTENCE ─────────────────────────────────────────────────────────
 function load() {
@@ -639,7 +654,11 @@ function render() {
     });
 
     const entries = state.days[curDay] || [];
-    const sorted = [...entries].sort((a,b) => a.hour - b.hour);
+    const sorted = [...entries].sort((a,b) => {
+        if (a.hour !== b.hour) return a.hour - b.hour;
+        if (a.time && b.time) return a.time.localeCompare(b.time);
+        return a.time ? -1 : b.time ? 1 : 0;
+    });
 
     // Summary
     const sumF = entries.reduce((s,e) => s + (e.fluids|0), 0);
@@ -661,14 +680,17 @@ function render() {
 
     list.innerHTML = sorted.map(e => {
         const hasLeak = !!e.leak;
+        const drinkBadge = e.drink
+            ? `<span class="badge badge-drink">${drinkLabel(e.drink)}</span>`
+            : '';
         const urgeBadge = e.urge
             ? `<span class="badge ${e.urge === 'niekt' ? 'badge-urge-niekt' : 'badge-urge'}">Parcie: ${urgeLabel(e.urge)}</span>`
             : '';
         const leakBadge = e.leak
             ? `<span class="badge badge-leak">Gubienie: ${leakLabel(e.leak)}</span>`
             : '';
-        const badges = (urgeBadge || leakBadge)
-            ? `<div class="entry-badges">${urgeBadge}${leakBadge}</div>`
+        const badges = (drinkBadge || urgeBadge || leakBadge)
+            ? `<div class="entry-badges">${drinkBadge}${urgeBadge}${leakBadge}</div>`
             : '';
         return `
         <div class="entry-card${hasLeak ? ' has-leak' : ''}">
@@ -700,17 +722,29 @@ function urgeShort(v) {
 function leakLabel(v) {
     return {x:'x (kilka kropli)', xx:'xx (wilgotno)', xxx:'xxx (mokro)'}[v] || v;
 }
+function drinkLabel(v) {
+    return {woda:'💧 Woda', kawa:'☕ Kawa', herbata:'🍵 Herbata', piwo:'🍺 Piwo', piwo_b:'🥤 Piwo bezalk.'}[v] || v;
+}
+function drinkShort(v) {
+    return {woda:'Woda', kawa:'Kawa', herbata:'Herb.', piwo:'Piwo', piwo_b:'Piwo b.'}[v] || '';
+}
 
 // ── MODAL ────────────────────────────────────────────────────────────────
 function buildHourGrid() {
-    const filled = new Set((state.days[curDay]||[]).map(e => e.hour));
+    const countMap = {};
+    (state.days[curDay]||[]).forEach(e => {
+        if (editing && e.id === editing) return;
+        countMap[e.hour] = (countMap[e.hour] || 0) + 1;
+    });
     const grid = document.getElementById('hourGrid');
     grid.innerHTML = '';
     HOURS.forEach((h, i) => {
         const btn = document.createElement('button');
-        btn.className = 'hour-btn' + (filled.has(i) ? ' has-data' : '');
+        const cnt = countMap[i] || 0;
+        btn.className = 'hour-btn' + (cnt > 0 ? ' has-data' : '');
         btn.dataset.i = i;
-        btn.textContent = h;
+        btn.innerHTML = h + (cnt > 0 ? `<span style="position:absolute;top:2px;right:4px;font-size:9px;color:var(--green)">${cnt}</span>` : '');
+        btn.style.position = 'relative';
         btn.onclick = () => pickHour(i);
         grid.appendChild(btn);
     });
@@ -760,14 +794,21 @@ function pickLeak(v) {
     });
 }
 
+function pickDrink(v) {
+    selDrink = (selDrink === v) ? null : v;
+    document.querySelectorAll('#drinkGroup .seg-btn').forEach(b => {
+        b.classList.toggle('sel-drink', b.dataset.val === selDrink);
+    });
+}
+
 function clearForm() {
-    selHour = null; selUrge = null; selLeak = null;
+    selHour = null; selUrge = null; selLeak = null; selDrink = null;
     document.getElementById('inputTime').value = '';
     document.getElementById('inputFluids').value = '';
     document.getElementById('inputUrine').value = '';
     document.querySelectorAll('.hour-btn').forEach(b => b.classList.remove('selected'));
     document.querySelectorAll('.seg-btn').forEach(b =>
-        b.classList.remove('sel-urge','sel-urge-red','sel-leak')
+        b.classList.remove('sel-urge','sel-urge-red','sel-leak','sel-drink')
     );
 }
 
@@ -793,9 +834,11 @@ function openEditModal(id) {
     selHour = e.hour;
     selUrge = e.urge || null;
     selLeak = e.leak || null;
+    selDrink = e.drink || null;
     pickHour(e.hour);
     if (selUrge) pickUrge(selUrge);
     if (selLeak) pickLeak(selLeak);
+    if (selDrink) pickDrink(selDrink);
     document.getElementById('modalOverlay').classList.remove('hidden');
     document.getElementById('modal').scrollTop = 0;
 }
@@ -821,18 +864,13 @@ function saveEntry() {
     if (editing) {
         const idx = days.findIndex(e => e.id === editing);
         if (idx !== -1) {
-            days[idx] = { ...days[idx], hour: selHour, fluids, urine, urge: selUrge, leak: selLeak, time };
+            days[idx] = { ...days[idx], hour: selHour, fluids, urine, urge: selUrge, leak: selLeak, time, drink: selDrink };
         }
     } else {
-        const dup = days.find(e => e.hour === selHour);
-        if (dup) {
-            if (!confirm(`Wpis dla ${HOURS[selHour]} już istnieje. Zastąpić?`)) return;
-            state.days[curDay] = days.filter(e => e.hour !== selHour);
-        }
         state.days[curDay].push({
             id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
             hour: selHour, fluids, urine,
-            urge: selUrge, leak: selLeak, time
+            urge: selUrge, leak: selLeak, time, drink: selDrink
         });
     }
 
@@ -869,37 +907,62 @@ function exportPDF() {
     doc.setFont('helvetica', 'normal');
     doc.text(`Pacjent/ka: ${patient}`, 14, 22);
 
-    // Build table rows
+    // Build table rows – one row per entry (multiple entries per hour allowed)
+    // Collect all entries across days sorted by hour+time, then build rows
+    const maxRows = Math.max(
+        1,
+        ...[0,1,2].map(d => {
+            const byHour = {};
+            (state.days[d]||[]).forEach(e => { byHour[e.hour] = (byHour[e.hour]||0)+1; });
+            return Math.max(0, ...Object.values(byHour));
+        })
+    );
+
     const bodyRows = [];
     for (let h = 0; h < 24; h++) {
-        const row = [HOURS[h]];
-        for (let d = 0; d < 3; d++) {
-            const e = (state.days[d]||[]).find(x => x.hour === h);
-            if (e) {
-                row.push(
-                    e.time   ? e.time            : '',
-                    e.fluids ? String(e.fluids)  : '',
-                    e.urine  ? String(e.urine)   : '',
-                    e.urge   ? urgeShort(e.urge) : '',
-                    e.leak   ? e.leak            : ''
-                );
-            } else {
-                row.push('', '', '', '', '');
+        // For each day, get entries for this hour sorted by time
+        const dayEntries = [0,1,2].map(d =>
+            (state.days[d]||[])
+                .filter(e => e.hour === h)
+                .sort((a,b) => (a.time||'').localeCompare(b.time||''))
+        );
+        const rowCount = Math.max(1, ...dayEntries.map(arr => arr.length));
+
+        for (let r = 0; r < rowCount; r++) {
+            const row = [];
+            if (r === 0) {
+                row.push({ content: HOURS[h], rowSpan: rowCount,
+                    styles: { fontStyle: 'bold', fillColor: [240, 245, 255], valign: 'middle', halign: 'center' } });
             }
+            for (let d = 0; d < 3; d++) {
+                const e = dayEntries[d][r];
+                if (e) {
+                    row.push(
+                        e.time             ? e.time             : '',
+                        e.drink            ? drinkShort(e.drink): '',
+                        e.fluids           ? String(e.fluids)   : '',
+                        e.urine            ? String(e.urine)    : '',
+                        e.urge             ? urgeShort(e.urge)  : '',
+                        e.leak             ? e.leak             : ''
+                    );
+                } else {
+                    row.push('', '', '', '', '', '');
+                }
+            }
+            bodyRows.push(row);
         }
-        bodyRows.push(row);
     }
 
     // Sum row
-    const sumRow = [{ content: 'SUMA', styles: { fontStyle: 'bold' } }];
+    const sumRow = [{ content: 'SUMA', styles: { fontStyle: 'bold', fillColor: [219, 234, 254] } }];
     for (let d = 0; d < 3; d++) {
         const entries = state.days[d] || [];
         const sf = entries.reduce((s,e) => s + (e.fluids|0), 0);
         const su = entries.reduce((s,e) => s + (e.urine|0), 0);
         sumRow.push(
-            '',
-            { content: sf ? String(sf) : '', styles: { fontStyle: 'bold' } },
-            { content: su ? String(su) : '', styles: { fontStyle: 'bold' } },
+            '', '',
+            { content: sf ? String(sf) : '', styles: { fontStyle: 'bold', fillColor: [219, 234, 254] } },
+            { content: su ? String(su) : '', styles: { fontStyle: 'bold', fillColor: [219, 234, 254] } },
             '', ''
         );
     }
@@ -909,22 +972,22 @@ function exportPDF() {
         head: [
             [
                 { content: 'Godzina', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-                { content: 'Dzień 1', colSpan: 5, styles: { halign: 'center' } },
-                { content: 'Dzień 2', colSpan: 5, styles: { halign: 'center' } },
-                { content: 'Dzień 3', colSpan: 5, styles: { halign: 'center' } }
+                { content: 'Dzień 1', colSpan: 6, styles: { halign: 'center' } },
+                { content: 'Dzień 2', colSpan: 6, styles: { halign: 'center' } },
+                { content: 'Dzień 3', colSpan: 6, styles: { halign: 'center' } }
             ],
             [
-                'Czas', 'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie',
-                'Czas', 'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie',
-                'Czas', 'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie'
+                'Czas','Napój','Płyny\n(ml)','Mocz\n(ml)','Parcie','Gubienie',
+                'Czas','Napój','Płyny\n(ml)','Mocz\n(ml)','Parcie','Gubienie',
+                'Czas','Napój','Płyny\n(ml)','Mocz\n(ml)','Parcie','Gubienie'
             ]
         ],
         body: bodyRows,
         startY: 26,
         theme: 'grid',
         styles: {
-            fontSize: 7,
-            cellPadding: 2,
+            fontSize: 6.5,
+            cellPadding: 1.8,
             halign: 'center',
             valign: 'middle',
             lineColor: [180, 180, 180],
@@ -934,21 +997,13 @@ function exportPDF() {
             fillColor: [29, 111, 212],
             textColor: 255,
             fontStyle: 'bold',
-            fontSize: 7,
+            fontSize: 6.5,
             cellPadding: 2
         },
         columnStyles: {
-            0:  { cellWidth: 18, fontStyle: 'bold', fillColor: [240, 245, 255] },
-            1:  { cellWidth: 13 }, // Czas D1
-            6:  { cellWidth: 13 }, // Czas D2
-            11: { cellWidth: 13 }  // Czas D3
+            0: { cellWidth: 17 }
         },
-        didParseCell(data) {
-            if (data.section === 'body' && data.row.index === 24) {
-                data.cell.styles.fillColor = [219, 234, 254];
-            }
-        },
-        margin: { left: 10, right: 10 }
+        margin: { left: 8, right: 8 }
     });
 
     // Legend
