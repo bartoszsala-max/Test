@@ -1476,17 +1476,17 @@ async function loadFromCloud() {
         }
         setSyncDot('ok');
     } catch(e) {
-        setSyncDot('error');
-        if (e.message && e.message.includes('permission')) {
-            alert('Błąd dostępu do bazy danych.\n\nSprawdź czy w Firebase Console:\n1. Realtime Database została utworzona\n2. Reguły ustawione na "test mode"');
-        }
+        setSyncDot('error', e.message || String(e));
+        alert('❌ Błąd synchronizacji z Firebase:\n\n' + (e.message || e) +
+              '\n\n─────────────────\nNajczęstsza przyczyna: reguły bazy danych.\n\nW Firebase Console:\n1. Otwórz projekt → Realtime Database\n2. Kliknij zakładkę "Rules"\n3. Wpisz:\n{\n  "rules": {\n    ".read": "auth != null",\n    ".write": "auth != null"\n  }\n}\n4. Kliknij "Publish"');
     }
 }
 
-function setSyncDot(status) {
+function setSyncDot(status, errorMsg) {
     const dot = document.getElementById('syncDot');
     dot.className = 'sync-dot' + (status ? ' ' + status : '');
-    dot.title = {ok:'Zsynchronizowano ✓', busy:'Synchronizacja…', error:'Błąd synchronizacji ✗', '':'Brak chmury'}[status] || '';
+    const labels = {ok:'Zsynchronizowano ✓', busy:'Synchronizacja…', error:'Błąd: ' + (errorMsg || '✗'), '':'Brak chmury'};
+    dot.title = labels[status] || '';
 }
 
 // Firebase config setup
