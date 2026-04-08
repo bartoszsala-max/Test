@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Dzienniczek Mikcji</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -180,6 +180,10 @@
         }
         .entry-card:active { transform: scale(0.99); }
         .entry-card.has-leak { border-left-color: var(--amber); }
+        .entry-card.type-drink { border-left-color: #2563eb; }
+        .entry-card.type-urine { border-left-color: #10b981; }
+        .entry-card.type-both  { border-left-color: #8b5cf6; }
+        .entry-type-icon { font-size: 18px; line-height: 1; flex-shrink: 0; }
         .entry-hour {
             font-size: 11px;
             font-weight: 700;
@@ -363,7 +367,7 @@
             max-width: 600px;
             max-height: 94vh;
             overflow-y: auto;
-            padding: 16px 20px 44px;
+            padding: 16px 20px max(44px, env(safe-area-inset-bottom, 0px));
             overscroll-behavior: contain;
         }
         .modal-handle {
@@ -1017,7 +1021,8 @@
                 <button class="seg-btn" data-val="herbata" onclick="pickDrink('herbata')">🍵<small>Herbata</small></button>
                 <button class="seg-btn" data-val="piwo"    onclick="pickDrink('piwo')">🍺<small>Piwo</small></button>
                 <button class="seg-btn" data-val="piwo_b"  onclick="pickDrink('piwo_b')">🥤<small>Piwo bezalk.</small></button>
-                <button class="seg-btn" data-val="jogurt"  onclick="pickDrink('jogurt')">🥛<small>Jogurt</small></button>
+                <button class="seg-btn" data-val="jogurt"      onclick="pickDrink('jogurt')">🥛<small>Jogurt</small></button>
+                <button class="seg-btn" data-val="elektrolity" onclick="pickDrink('elektrolity')">⚡<small>Elektrolity</small></button>
             </div>
         </div>
 
@@ -1170,6 +1175,10 @@ function render() {
 
     list.innerHTML = sorted.map(e => {
         const hasLeak = !!e.leak;
+        const hasFluids = (e.fluids|0) > 0;
+        const hasUrine  = (e.urine|0)  > 0;
+        const typeClass = hasFluids && hasUrine ? 'type-both' : hasFluids ? 'type-drink' : hasUrine ? 'type-urine' : '';
+        const typeIcon  = hasFluids && hasUrine ? '🔄' : hasFluids ? '💧' : hasUrine ? '🚿' : '📋';
         const drinkBadge = e.drink
             ? `<span class="badge badge-drink">${drinkLabel(e.drink)}</span>`
             : '';
@@ -1183,7 +1192,8 @@ function render() {
             ? `<div class="entry-badges">${drinkBadge}${urgeBadge}${leakBadge}</div>`
             : '';
         return `
-        <div class="entry-card${hasLeak ? ' has-leak' : ''}">
+        <div class="entry-card${hasLeak ? ' has-leak' : ''}${typeClass ? ' ' + typeClass : ''}">
+            <div class="entry-type-icon">${typeIcon}</div>
             <div class="entry-hour">
                 ${e.time ? `<span class="entry-precise-time">${e.time}</span>` : ''}
                 ${HOURS[e.hour]}
@@ -1213,10 +1223,10 @@ function leakLabel(v) {
     return {x:'x (kilka kropli)', xx:'xx (wilgotno)', xxx:'xxx (mokro)'}[v] || v;
 }
 function drinkLabel(v) {
-    return {woda:'💧 Woda', kawa:'☕ Kawa', herbata:'🍵 Herbata', piwo:'🍺 Piwo', piwo_b:'🥤 Piwo bezalk.', jogurt:'🥛 Jogurt'}[v] || v;
+    return {woda:'💧 Woda', kawa:'☕ Kawa', herbata:'🍵 Herbata', piwo:'🍺 Piwo', piwo_b:'🥤 Piwo bezalk.', jogurt:'🥛 Jogurt', elektrolity:'⚡ Elektrolity'}[v] || v;
 }
 function drinkShort(v) {
-    return {woda:'Woda', kawa:'Kawa', herbata:'Herb.', piwo:'Piwo', piwo_b:'Piwo b.', jogurt:'Jogurt'}[v] || '';
+    return {woda:'Woda', kawa:'Kawa', herbata:'Herb.', piwo:'Piwo', piwo_b:'Piwo b.', jogurt:'Jogurt', elektrolity:'Elektr.'}[v] || '';
 }
 
 // ── MODAL ────────────────────────────────────────────────────────────────
@@ -1862,7 +1872,8 @@ function openDrinkAnalysis() {
         herbata: { label:'Herbata',        icon:'🍵', color:'#16a34a' },
         piwo:    { label:'Piwo',           icon:'🍺', color:'#d97706' },
         piwo_b:  { label:'Piwo bezalk.',   icon:'🥤', color:'#7c3aed' },
-        jogurt:  { label:'Jogurt',         icon:'🥛', color:'#0d9488' },
+        jogurt:     { label:'Jogurt',       icon:'🥛', color:'#0d9488' },
+        elektrolity:{ label:'Elektrolity', icon:'⚡', color:'#f59e0b' },
         _brak:   { label:'Nieokreślony',   icon:'–',  color:'#94a3b8' },
     };
 
