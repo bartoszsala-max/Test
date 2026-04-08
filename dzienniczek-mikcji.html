@@ -1455,6 +1455,24 @@ async function loadFromCloud() {
                 document.getElementById('patientName').value = state.patientName || '';
                 render();
             }
+        } else {
+            // Chmura pusta — sprawdź czy jest coś w localStorage i wyślij do chmury
+            const local = localStorage.getItem('mikcja_v1');
+            if (local) {
+                try {
+                    const parsed = JSON.parse(local);
+                    if (parsed && Array.isArray(parsed.days)) {
+                        const hasData = parsed.days.some(d => d.length > 0) || parsed.patientName;
+                        if (hasData) {
+                            state = parsed;
+                            while (state.days.length < 3) state.days.push([]);
+                            await fbDb.ref(`users/${currentUser.uid}/mikcja`).set(state);
+                            document.getElementById('patientName').value = state.patientName || '';
+                            render();
+                        }
+                    }
+                } catch(e2) {}
+            }
         }
         setSyncDot('ok');
     } catch(e) {
