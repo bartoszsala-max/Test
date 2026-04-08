@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Dzienniczek Mikcji</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary: #1d6fd4;
+            --primary-light: #eff6ff;
+            --primary-dark: #1450a3;
+            --green: #16a34a;
+            --green-light: #f0fdf4;
+            --red: #dc2626;
+            --red-light: #fef2f2;
+            --amber: #d97706;
+            --amber-light: #fffbeb;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 14px;
+            --shadow: 0 1px 4px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.06);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 14px 18px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .header-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+        .header-sub { font-size: 11px; opacity: 0.75; margin-top: 2px; }
+        .btn-reset {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-reset:active { background: rgba(255,255,255,0.25); }
+
+        /* ── PATIENT ── */
+        .patient-section {
+            background: var(--card);
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+        .field-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .patient-input {
+            width: 100%;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-size: 16px;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s;
+            background: white;
+        }
+        .patient-input:focus { border-color: var(--primary); }
+
+        /* ── DAY TABS ── */
+        .day-tabs {
+            display: flex;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 18px;
+            gap: 8px;
+        }
+        .day-tab {
+            flex: 1;
+            padding: 13px 8px;
+            border: 2px solid var(--border);
+            background: white;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .day-tab .tab-count {
+            font-size: 11px;
+            font-weight: 500;
+            display: block;
+            margin-top: 2px;
+            opacity: 0.7;
+        }
+        .day-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .day-tab.active .tab-count { opacity: 0.85; }
+
+        /* ── SUMMARY ── */
+        .summary-card {
+            margin: 14px 18px 10px;
+            background: linear-gradient(135deg, #1d6fd4, #2563eb);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            color: white;
+            box-shadow: 0 4px 16px rgba(29,111,212,0.3);
+        }
+        .summary-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            opacity: 0.8;
+            margin-bottom: 12px;
+        }
+        .summary-row { display: flex; justify-content: space-around; }
+        .summary-item { text-align: center; }
+        .summary-value { font-size: 28px; font-weight: 800; line-height: 1; }
+        .summary-unit { font-size: 11px; opacity: 0.75; margin-top: 3px; }
+
+        /* ── ENTRIES ── */
+        .entries-section { padding: 0 18px 100px; }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0 10px;
+        }
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .entry-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 4px solid var(--primary);
+        }
+        .entry-card.has-leak { border-left-color: var(--amber); }
+        .entry-hour {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--primary);
+            min-width: 58px;
+            white-space: nowrap;
+        }
+        .entry-body { flex: 1; min-width: 0; }
+        .entry-stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 6px;
+        }
+        .entry-stat { font-size: 13px; color: var(--muted); }
+        .entry-stat strong { color: var(--text); font-weight: 700; }
+        .entry-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+        .badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
+        .badge-urge { background: var(--primary-light); color: var(--primary-dark); }
+        .badge-urge-niekt { background: var(--red-light); color: var(--red); }
+        .badge-leak { background: var(--amber-light); color: #92400e; }
+
+        .entry-actions { display: flex; gap: 6px; }
+        .btn-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: transform 0.1s;
+        }
+        .btn-icon:active { transform: scale(0.9); }
+        .btn-edit { background: var(--primary-light); }
+        .btn-delete { background: var(--red-light); }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--muted);
+        }
+        .empty-icon { font-size: 52px; margin-bottom: 14px; }
+        .empty-text { font-size: 15px; line-height: 1.6; }
+
+        /* ── FAB ── */
+        .fab-container {
+            position: fixed;
+            bottom: 24px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .fab {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .fab-add { background: var(--primary); color: white; width: 64px; height: 64px; font-size: 28px; }
+        .fab-pdf { background: var(--green); color: white; font-size: 18px; }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 200;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+        .modal-overlay.hidden { display: none; }
+        .modal {
+            background: var(--card);
+            border-radius: 22px 22px 0 0;
+            width: 100%;
+            max-width: 600px;
+            max-height: 94vh;
+            overflow-y: auto;
+            padding: 16px 20px 44px;
+            overscroll-behavior: contain;
+        }
+        .modal-handle {
+            width: 38px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 0 auto 18px;
+        }
+        .modal-title { font-size: 22px; font-weight: 800; margin-bottom: 18px; color: var(--text); }
+
+        /* ── FORM ── */
+        .form-group { margin-bottom: 20px; }
+
+        .auto-time-btn {
+            width: 100%;
+            padding: 13px;
+            background: var(--green-light);
+            border: 2px solid #86efac;
+            border-radius: 12px;
+            color: var(--green);
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 18px;
+            transition: background 0.15s;
+        }
+        .auto-time-btn:active { background: #dcfce7; }
+
+        /* Hour grid */
+        .hour-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+        .hour-btn {
+            padding: 10px 4px;
+            border: 2px solid var(--border);
+            border-radius: 9px;
+            background: white;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.12s;
+            text-align: center;
+            position: relative;
+        }
+        .hour-btn.has-data::after {
+            content: '•';
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 10px;
+            color: var(--green);
+        }
+        .hour-btn.selected {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .hour-btn.selected.has-data::after { color: #90cdf4; }
+        .hour-btn:active { transform: scale(0.93); }
+
+        /* Numeric inputs */
+        .num-input {
+            width: 100%;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s;
+            text-align: center;
+            -webkit-appearance: none;
+        }
+        .num-input:focus { border-color: var(--primary); }
+        .num-input::placeholder { color: #cbd5e1; font-weight: 400; }
+
+        /* Segment buttons */
+        .seg-group { display: flex; gap: 6px; flex-wrap: wrap; }
+        .seg-btn {
+            flex: 1;
+            min-width: 70px;
+            padding: 12px 6px;
+            border: 2px solid var(--border);
+            border-radius: 11px;
+            background: white;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.12s;
+            text-align: center;
+            line-height: 1.3;
+        }
+        .seg-btn small { display: block; font-size: 10px; font-weight: 500; margin-top: 2px; }
+        .seg-btn:active { transform: scale(0.95); }
+
+        .seg-btn.sel-urge { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
+        .seg-btn.sel-urge-red { background: var(--red-light); border-color: var(--red); color: var(--red); }
+        .seg-btn.sel-leak { background: var(--amber-light); border-color: var(--amber); color: #92400e; }
+
+        /* Form actions */
+        .form-actions { display: flex; gap: 10px; margin-top: 26px; }
+        .btn-action {
+            flex: 1;
+            padding: 17px;
+            border-radius: 14px;
+            border: none;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .btn-action:active { transform: scale(0.97); }
+        .btn-save { background: var(--primary); color: white; }
+        .btn-cancel { background: var(--bg); color: var(--muted); }
+
+        /* Legend */
+        .legend {
+            padding: 14px 18px;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- HEADER -->
+    <div class="header">
+        <div>
+            <div class="header-title">Dzienniczek Mikcji</div>
+            <div class="header-sub">Dziennik oddawania moczu</div>
+        </div>
+        <button class="btn-reset" onclick="resetData()">Nowy pacjent</button>
+    </div>
+
+    <!-- PATIENT -->
+    <div class="patient-section">
+        <label class="field-label" for="patientName">Imię i Nazwisko Pacjenta</label>
+        <input type="text" class="patient-input" id="patientName"
+               placeholder="Wpisz imię i nazwisko..."
+               oninput="onPatientChange(this.value)" />
+    </div>
+
+    <!-- DAY TABS -->
+    <div class="day-tabs">
+        <button class="day-tab active" id="tab1" onclick="selectDay(1)">
+            Dzień 1<span class="tab-count" id="cnt1">– wpisów</span>
+        </button>
+        <button class="day-tab" id="tab2" onclick="selectDay(2)">
+            Dzień 2<span class="tab-count" id="cnt2">– wpisów</span>
+        </button>
+        <button class="day-tab" id="tab3" onclick="selectDay(3)">
+            Dzień 3<span class="tab-count" id="cnt3">– wpisów</span>
+        </button>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="summary-card">
+        <div class="summary-title">Podsumowanie – <span id="dayLabel">Dzień 1</span></div>
+        <div class="summary-row">
+            <div class="summary-item">
+                <div class="summary-value" id="sumFluids">0</div>
+                <div class="summary-unit">ml płynów</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="sumUrine">0</div>
+                <div class="summary-unit">ml moczu</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="sumCount">0</div>
+                <div class="summary-unit">wpisów</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ENTRIES -->
+    <div class="entries-section">
+        <div class="section-header">
+            <div class="section-title" id="sectionTitle">Wpisy – Dzień 1</div>
+        </div>
+        <div id="entriesList"></div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend">
+        <strong>Parcie:</strong> x = słabe &nbsp;|&nbsp; xx = normalne &nbsp;|&nbsp; xxx = silne &nbsp;|&nbsp; N = niekontrolowane<br>
+        <strong>Gubienie:</strong> x = kilka kropli &nbsp;|&nbsp; xx = wilgotno &nbsp;|&nbsp; xxx = mokro
+    </div>
+</div>
+
+<!-- FAB -->
+<div class="fab-container">
+    <button class="fab fab-pdf" onclick="exportPDF()" title="Eksportuj PDF">📄</button>
+    <button class="fab fab-add" onclick="openAddModal()" title="Dodaj wpis">+</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modalOverlay" onclick="onOverlayClick(event)">
+    <div class="modal" id="modal">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modalTitle">Dodaj wpis</div>
+
+        <!-- Auto time -->
+        <button class="auto-time-btn" onclick="setCurrentHour()">⏱ Ustaw aktualną godzinę</button>
+
+        <!-- Hour grid -->
+        <div class="form-group">
+            <label class="field-label">Przedział godzinowy</label>
+            <div class="hour-grid" id="hourGrid"></div>
+        </div>
+
+        <!-- Fluids -->
+        <div class="form-group">
+            <label class="field-label" for="inputFluids">Wypijane płyny (ml)</label>
+            <input type="number" class="num-input" id="inputFluids"
+                   placeholder="0" min="0" max="9999" inputmode="numeric" />
+        </div>
+
+        <!-- Urine -->
+        <div class="form-group">
+            <label class="field-label" for="inputUrine">Ilość moczu (ml)</label>
+            <input type="number" class="num-input" id="inputUrine"
+                   placeholder="0" min="0" max="9999" inputmode="numeric" />
+        </div>
+
+        <!-- Urge -->
+        <div class="form-group">
+            <label class="field-label">Siła parcia na mocz</label>
+            <div class="seg-group" id="urgeGroup">
+                <button class="seg-btn" data-val="x" onclick="pickUrge('x')">
+                    x<small>słabe</small>
+                </button>
+                <button class="seg-btn" data-val="xx" onclick="pickUrge('xx')">
+                    xx<small>normalne</small>
+                </button>
+                <button class="seg-btn" data-val="xxx" onclick="pickUrge('xxx')">
+                    xxx<small>silne</small>
+                </button>
+                <button class="seg-btn" data-val="niekt" onclick="pickUrge('niekt')">
+                    N<small>niekontr.</small>
+                </button>
+            </div>
+        </div>
+
+        <!-- Leakage -->
+        <div class="form-group">
+            <label class="field-label">Gubienie moczu</label>
+            <div class="seg-group" id="leakGroup">
+                <button class="seg-btn" data-val="x" onclick="pickLeak('x')">
+                    x<small>kilka kropli</small>
+                </button>
+                <button class="seg-btn" data-val="xx" onclick="pickLeak('xx')">
+                    xx<small>wilgotno</small>
+                </button>
+                <button class="seg-btn" data-val="xxx" onclick="pickLeak('xxx')">
+                    xxx<small>mokro</small>
+                </button>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn-action btn-cancel" onclick="closeModal()">Anuluj</button>
+            <button class="btn-action btn-save" onclick="saveEntry()">Zapisz</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────
+const HOURS = Array.from({length: 24}, (_, i) =>
+    `${String(i).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`
+);
+
+let state = { patientName: '', days: [[], [], []] };
+let curDay = 0; // 0-indexed
+let editing = null; // entry id being edited
+let selHour = null;
+let selUrge = null;
+let selLeak = null;
+
+// ── PERSISTENCE ─────────────────────────────────────────────────────────
+function load() {
+    try {
+        const s = localStorage.getItem('mikcja_v1');
+        if (s) state = JSON.parse(s);
+        // ensure 3 day arrays
+        while (state.days.length < 3) state.days.push([]);
+    } catch(e) {}
+    document.getElementById('patientName').value = state.patientName || '';
+}
+
+function save() {
+    localStorage.setItem('mikcja_v1', JSON.stringify(state));
+}
+
+function onPatientChange(v) {
+    state.patientName = v;
+    save();
+}
+
+function resetData() {
+    if (!confirm('Czy na pewno chcesz usunąć wszystkie dane i zacząć od nowa?')) return;
+    state = { patientName: '', days: [[], [], []] };
+    save();
+    document.getElementById('patientName').value = '';
+    render();
+}
+
+// ── DAY SELECTION ────────────────────────────────────────────────────────
+function selectDay(d) {
+    curDay = d - 1;
+    [1,2,3].forEach(i => {
+        document.getElementById(`tab${i}`).classList.toggle('active', i === d);
+    });
+    document.getElementById('dayLabel').textContent = `Dzień ${d}`;
+    document.getElementById('sectionTitle').textContent = `Wpisy – Dzień ${d}`;
+    render();
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────
+function render() {
+    // Tab counts
+    [0,1,2].forEach(i => {
+        const n = state.days[i].length;
+        document.getElementById(`cnt${i+1}`).textContent =
+            n === 0 ? '– wpisów' : n === 1 ? '1 wpis' : `${n} wpisów`;
+    });
+
+    const entries = state.days[curDay] || [];
+    const sorted = [...entries].sort((a,b) => a.hour - b.hour);
+
+    // Summary
+    const sumF = entries.reduce((s,e) => s + (e.fluids|0), 0);
+    const sumU = entries.reduce((s,e) => s + (e.urine|0), 0);
+    document.getElementById('sumFluids').textContent = sumF;
+    document.getElementById('sumUrine').textContent = sumU;
+    document.getElementById('sumCount').textContent = entries.length;
+
+    // Entry list
+    const list = document.getElementById('entriesList');
+    if (sorted.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">Brak wpisów dla tego dnia.<br>Naciśnij <strong>+</strong> aby dodać wpis.</div>
+            </div>`;
+        return;
+    }
+
+    list.innerHTML = sorted.map(e => {
+        const hasLeak = !!e.leak;
+        const urgeBadge = e.urge
+            ? `<span class="badge ${e.urge === 'niekt' ? 'badge-urge-niekt' : 'badge-urge'}">Parcie: ${urgeLabel(e.urge)}</span>`
+            : '';
+        const leakBadge = e.leak
+            ? `<span class="badge badge-leak">Gubienie: ${leakLabel(e.leak)}</span>`
+            : '';
+        const badges = (urgeBadge || leakBadge)
+            ? `<div class="entry-badges">${urgeBadge}${leakBadge}</div>`
+            : '';
+        return `
+        <div class="entry-card${hasLeak ? ' has-leak' : ''}">
+            <div class="entry-hour">${HOURS[e.hour]}</div>
+            <div class="entry-body">
+                <div class="entry-stats">
+                    <div class="entry-stat">Płyny: <strong>${e.fluids|0} ml</strong></div>
+                    <div class="entry-stat">Mocz: <strong>${e.urine|0} ml</strong></div>
+                </div>
+                ${badges}
+            </div>
+            <div class="entry-actions">
+                <button class="btn-icon btn-edit" onclick="openEditModal('${e.id}')" title="Edytuj">✏️</button>
+                <button class="btn-icon btn-delete" onclick="deleteEntry('${e.id}')" title="Usuń">🗑️</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function urgeLabel(v) {
+    return {x:'x (słabe)', xx:'xx (normalne)', xxx:'xxx (silne)', niekt:'niekontrolowane'}[v] || v;
+}
+function urgeShort(v) {
+    return {x:'x', xx:'xx', xxx:'xxx', niekt:'N'}[v] || '';
+}
+function leakLabel(v) {
+    return {x:'x (kilka kropli)', xx:'xx (wilgotno)', xxx:'xxx (mokro)'}[v] || v;
+}
+
+// ── MODAL ────────────────────────────────────────────────────────────────
+function buildHourGrid() {
+    const filled = new Set((state.days[curDay]||[]).map(e => e.hour));
+    const grid = document.getElementById('hourGrid');
+    grid.innerHTML = '';
+    HOURS.forEach((h, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'hour-btn' + (filled.has(i) ? ' has-data' : '');
+        btn.dataset.i = i;
+        btn.textContent = h;
+        btn.onclick = () => pickHour(i);
+        grid.appendChild(btn);
+    });
+}
+
+function pickHour(i) {
+    selHour = i;
+    document.querySelectorAll('.hour-btn').forEach(b => {
+        b.classList.toggle('selected', +b.dataset.i === i);
+    });
+}
+
+function setCurrentHour() {
+    const h = new Date().getHours();
+    pickHour(h);
+    const btn = document.querySelector(`.hour-btn[data-i="${h}"]`);
+    if (btn) btn.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function pickUrge(v) {
+    selUrge = (selUrge === v) ? null : v;
+    document.querySelectorAll('#urgeGroup .seg-btn').forEach(b => {
+        b.classList.remove('sel-urge','sel-urge-red');
+        if (b.dataset.val === selUrge) {
+            b.classList.add(selUrge === 'niekt' ? 'sel-urge-red' : 'sel-urge');
+        }
+    });
+}
+
+function pickLeak(v) {
+    selLeak = (selLeak === v) ? null : v;
+    document.querySelectorAll('#leakGroup .seg-btn').forEach(b => {
+        b.classList.toggle('sel-leak', b.dataset.val === selLeak);
+    });
+}
+
+function clearForm() {
+    selHour = null; selUrge = null; selLeak = null;
+    document.getElementById('inputFluids').value = '';
+    document.getElementById('inputUrine').value = '';
+    document.querySelectorAll('.hour-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.seg-btn').forEach(b =>
+        b.classList.remove('sel-urge','sel-urge-red','sel-leak')
+    );
+}
+
+function openAddModal() {
+    editing = null;
+    document.getElementById('modalTitle').textContent = 'Dodaj wpis';
+    buildHourGrid();
+    clearForm();
+    document.getElementById('modalOverlay').classList.remove('hidden');
+    document.getElementById('modal').scrollTop = 0;
+}
+
+function openEditModal(id) {
+    const e = (state.days[curDay]||[]).find(x => x.id === id);
+    if (!e) return;
+    editing = id;
+    document.getElementById('modalTitle').textContent = 'Edytuj wpis';
+    buildHourGrid();
+    clearForm();
+    document.getElementById('inputFluids').value = e.fluids || '';
+    document.getElementById('inputUrine').value = e.urine || '';
+    selHour = e.hour;
+    selUrge = e.urge || null;
+    selLeak = e.leak || null;
+    pickHour(e.hour);
+    if (selUrge) pickUrge(selUrge);
+    if (selLeak) pickLeak(selLeak);
+    document.getElementById('modalOverlay').classList.remove('hidden');
+    document.getElementById('modal').scrollTop = 0;
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.add('hidden');
+}
+
+function onOverlayClick(ev) {
+    if (ev.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function saveEntry() {
+    if (selHour === null) {
+        alert('Wybierz przedział godzinowy!');
+        return;
+    }
+    const fluids = parseInt(document.getElementById('inputFluids').value) || 0;
+    const urine = parseInt(document.getElementById('inputUrine').value) || 0;
+    const days = state.days[curDay];
+
+    if (editing) {
+        const idx = days.findIndex(e => e.id === editing);
+        if (idx !== -1) {
+            days[idx] = { ...days[idx], hour: selHour, fluids, urine, urge: selUrge, leak: selLeak };
+        }
+    } else {
+        const dup = days.find(e => e.hour === selHour);
+        if (dup) {
+            if (!confirm(`Wpis dla ${HOURS[selHour]} już istnieje. Zastąpić?`)) return;
+            state.days[curDay] = days.filter(e => e.hour !== selHour);
+        }
+        state.days[curDay].push({
+            id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            hour: selHour, fluids, urine,
+            urge: selUrge, leak: selLeak
+        });
+    }
+
+    save();
+    render();
+    closeModal();
+}
+
+function deleteEntry(id) {
+    if (!confirm('Usunąć ten wpis?')) return;
+    state.days[curDay] = (state.days[curDay]||[]).filter(e => e.id !== id);
+    save();
+    render();
+}
+
+// ── PDF EXPORT ────────────────────────────────────────────────────────────
+function exportPDF() {
+    if (!window.jspdf) {
+        alert('Biblioteka PDF nie jest załadowana. Sprawdź połączenie z internetem.');
+        return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+    const patient = state.patientName || '___________________________________';
+    const W = 297; // A4 landscape width
+
+    // Title
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DZIENNICZEK MIKCJI', W / 2, 14, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Pacjent/ka: ${patient}`, 14, 22);
+
+    // Build table rows
+    const bodyRows = [];
+    for (let h = 0; h < 24; h++) {
+        const row = [HOURS[h]];
+        for (let d = 0; d < 3; d++) {
+            const e = (state.days[d]||[]).find(x => x.hour === h);
+            if (e) {
+                row.push(
+                    e.fluids ? String(e.fluids) : '',
+                    e.urine  ? String(e.urine)  : '',
+                    e.urge   ? urgeShort(e.urge) : '',
+                    e.leak   ? e.leak            : ''
+                );
+            } else {
+                row.push('', '', '', '');
+            }
+        }
+        bodyRows.push(row);
+    }
+
+    // Sum row
+    const sumRow = [{ content: 'SUMA', styles: { fontStyle: 'bold' } }];
+    for (let d = 0; d < 3; d++) {
+        const entries = state.days[d] || [];
+        const sf = entries.reduce((s,e) => s + (e.fluids|0), 0);
+        const su = entries.reduce((s,e) => s + (e.urine|0), 0);
+        sumRow.push(
+            { content: sf ? String(sf) : '', styles: { fontStyle: 'bold' } },
+            { content: su ? String(su) : '', styles: { fontStyle: 'bold' } },
+            '', ''
+        );
+    }
+    bodyRows.push(sumRow);
+
+    doc.autoTable({
+        head: [
+            [
+                { content: 'Godzina', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+                { content: 'Dzień 1', colSpan: 4, styles: { halign: 'center' } },
+                { content: 'Dzień 2', colSpan: 4, styles: { halign: 'center' } },
+                { content: 'Dzień 3', colSpan: 4, styles: { halign: 'center' } }
+            ],
+            [
+                'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie',
+                'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie',
+                'Płyny\n(ml)', 'Mocz\n(ml)', 'Parcie', 'Gubienie'
+            ]
+        ],
+        body: bodyRows,
+        startY: 26,
+        theme: 'grid',
+        styles: {
+            fontSize: 7,
+            cellPadding: 2.2,
+            halign: 'center',
+            valign: 'middle',
+            lineColor: [180, 180, 180],
+            lineWidth: 0.3
+        },
+        headStyles: {
+            fillColor: [29, 111, 212],
+            textColor: 255,
+            fontStyle: 'bold',
+            fontSize: 7,
+            cellPadding: 2.5
+        },
+        columnStyles: {
+            0: { cellWidth: 20, fontStyle: 'bold', fillColor: [240, 245, 255] }
+        },
+        didParseCell(data) {
+            // Sum row styling
+            if (data.section === 'body' && data.row.index === 24) {
+                data.cell.styles.fillColor = [219, 234, 254];
+            }
+        },
+        margin: { left: 14, right: 14 }
+    });
+
+    // Legend
+    const y = doc.lastAutoTable.finalY + 6;
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Legenda:', 14, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Parcie na mocz: x = słabe,  xx = normalne,  xxx = silne,  N = niekontrolowane', 30, y);
+    doc.text('Gubienie moczu: x = kilka kropli,  xx = wilgotno,  xxx = mokro', 30, y + 4.5);
+
+    const fname = `dzienniczek_mikcji_${(state.patientName||'pacjent').replace(/\s+/g,'_')}.pdf`;
+    doc.save(fname);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+load();
+render();
+</script>
+</body>
+</html>
