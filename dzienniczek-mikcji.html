@@ -1263,7 +1263,11 @@ function render() {
             sleepStart = null;
         }
     });
-    if (sleepStart !== null) sleepIntervals.push([sleepStart, Infinity]);
+    // Brak obudzenia: użyj pierwszej mikcji po zaśnięciu jako implicite koniec snu
+    if (sleepStart !== null) {
+        const implicitWake = urineOnly.map(getMin).find(t => t > sleepStart);
+        sleepIntervals.push([sleepStart, implicitWake ?? sleepStart + 720]);
+    }
 
     const gaps = [];
     for (let i = 1; i < urineOnly.length; i++) {
