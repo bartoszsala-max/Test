@@ -117,9 +117,9 @@
         }
         .day-tab.active .tab-count { opacity: 0.9; }
         .tab-date { display: block; font-size: 10px; font-weight: 500; opacity: 0.75; margin-top: 1px; letter-spacing: 0.01em; }
-        .all-days-bar { background: var(--card); border-bottom: 1px solid var(--border); padding: 6px 18px; display: flex; justify-content: flex-end; }
-        .all-days-btn { background: none; border: 1.5px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; transition: all 0.15s; }
-        .all-days-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+        .all-days-bar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 18px 10px; }
+        .all-days-btn { display: block; width: 100%; background: none; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 10px; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; transition: all 0.15s; text-align: center; box-sizing: border-box; }
+        .all-days-btn.active { background: linear-gradient(135deg, #2563eb, #3b82f6); border-color: #2563eb; color: white; }
 
         /* ── SUMMARY ── */
         .summary-card {
@@ -1123,6 +1123,7 @@ const HOURS = Array.from({length: 24}, (_, i) =>
 
 let state = { patientName: '', days: [[], [], []], dayDates: [null, null, null] };
 let curDay = 0; // 0-indexed
+let showAllDays = false;
 let editing = null; // entry id being edited
 let selHour = null;
 let selUrge = null;
@@ -1161,13 +1162,14 @@ function resetData() {
 // ── DAY SELECTION ────────────────────────────────────────────────────────
 function selectDay(d) {
     curDay = d - 1;
+    showAllDays = false;
     [1,2,3].forEach(i => {
         document.getElementById(`tab${i}`).classList.toggle('active', i === d);
     });
+    document.getElementById('allDaysBtn').classList.remove('active');
     document.getElementById('dayLabel').textContent = `Dzień ${d}`;
     document.getElementById('sectionTitle').textContent = `Wpisy – Dzień ${d}`;
     chartDayFilter = curDay;
-    document.getElementById('allDaysBtn').classList.remove('active');
     if (balanceChart) { balanceChart.destroy(); balanceChart = null; }
     render();
 }
@@ -1185,8 +1187,16 @@ function render() {
         if (el) el.textContent = formatTabDate(state.dayDates ? state.dayDates[i] : null);
     });
 
-    const entries = state.days[curDay] || [];
-    const sorted = [...entries].sort((a,b) => {
+    const allEntries = showAllDays
+        ? state.days.flatMap((day, i) => day.map(e => ({ ...e, _dayIdx: i })))
+        : (state.days[curDay] || []).map(e => ({ ...e, _dayIdx: curDay }));
+
+    const entries = showAllDays
+        ? state.days.flatMap(day => day)
+        : (state.days[curDay] || []);
+
+    const sorted = [...allEntries].sort((a,b) => {
+        if (a._dayIdx !== b._dayIdx) return a._dayIdx - b._dayIdx;
         if (a.hour !== b.hour) return a.hour - b.hour;
         if (a.time && b.time) return a.time.localeCompare(b.time);
         return a.time ? -1 : b.time ? 1 : 0;
@@ -1241,7 +1251,7 @@ function render() {
         <div class="entry-card${hasLeak ? ' has-leak' : ''}${typeClass ? ' ' + typeClass : ''}">
             <div class="entry-type-icon">${typeIcon}</div>
             <div class="entry-hour">
-                ${e.time ? `<span class="entry-precise-time">${e.time}</span>` : ''}
+                <span class="entry-precise-time">${showAllDays ? `Dzień ${e._dayIdx+1}` : (e.time || '')}</span>
                 ${HOURS[e.hour]}
             </div>
             <div class="entry-body">
@@ -1638,10 +1648,13 @@ function setChartMode(mode) {
 }
 
 function selectAllDays() {
+    showAllDays = true;
     chartDayFilter = null;
+    [1,2,3].forEach(i => document.getElementById(`tab${i}`).classList.remove('active'));
     document.getElementById('allDaysBtn').classList.add('active');
+    document.getElementById('sectionTitle').textContent = 'Wpisy – Wszystkie dni';
     if (balanceChart) { balanceChart.destroy(); balanceChart = null; }
-    updateChart();
+    render();
 }
 
 function updateChart() {
