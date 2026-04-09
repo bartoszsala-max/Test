@@ -1248,16 +1248,28 @@ function render() {
     const getMin = e => (e._dayIdx||0)*1440 + e.hour*60 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : 30);
     const allSorted = [...allEntries].sort((a,b) => getMin(a) - getMin(b));
     const urineOnly = allSorted.filter(e => (e.urine|0) > 0);
-    const sleepTimes = allSorted.filter(e => e.night === 'sen').map(getMin);
 
     const avgUrine = urineOnly.length > 0
         ? Math.round(urineOnly.reduce((s,e) => s+(e.urine|0), 0) / urineOnly.length)
         : null;
 
+    // Build sleep intervals: sen → obudzenie pairs
+    const sleepIntervals = [];
+    let sleepStart = null;
+    allSorted.filter(e => e.night === 'sen' || e.night === 'obudzenie').forEach(e => {
+        if (e.night === 'sen') { sleepStart = getMin(e); }
+        else if (e.night === 'obudzenie' && sleepStart !== null) {
+            sleepIntervals.push([sleepStart, getMin(e)]);
+            sleepStart = null;
+        }
+    });
+    if (sleepStart !== null) sleepIntervals.push([sleepStart, Infinity]);
+
     const gaps = [];
     for (let i = 1; i < urineOnly.length; i++) {
         const t1 = getMin(urineOnly[i-1]), t2 = getMin(urineOnly[i]);
-        if (!sleepTimes.some(ts => ts > t1 && ts < t2)) gaps.push(t2 - t1);
+        const inSleep = sleepIntervals.some(([s, w]) => s < t2 && w > t1);
+        if (!inSleep) gaps.push(t2 - t1);
     }
     const avgGap = gaps.length > 0 ? Math.round(gaps.reduce((s,g)=>s+g,0)/gaps.length) : null;
 
