@@ -537,6 +537,24 @@
             margin-bottom: 10px;
         }
         .modal-toast.visible { display: block; }
+        .night-popup-overlay {
+            position: fixed; inset: 0; z-index: 400;
+            display: flex; align-items: flex-end; justify-content: center;
+            background: rgba(0,0,0,0.45); backdrop-filter: blur(2px);
+        }
+        .night-popup-overlay.hidden { display: none; }
+        .night-popup {
+            background: var(--card); border-radius: 22px 22px 0 0;
+            width: 100%; max-width: 600px;
+            padding: 24px 24px max(28px, env(safe-area-inset-bottom, 0px));
+            box-shadow: 0 -8px 32px rgba(0,0,0,0.15);
+        }
+        .night-popup-icon { font-size: 36px; text-align: center; margin-bottom: 10px; }
+        .night-popup-title { font-size: 18px; font-weight: 800; color: var(--text); text-align: center; margin-bottom: 6px; }
+        .night-popup-sub { font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 20px; }
+        .night-popup-btns { display: flex; gap: 10px; }
+        .night-popup-yes { flex: 1; padding: 15px; background: linear-gradient(135deg,#1e3a8a,#2563eb); color: white; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; }
+        .night-popup-no  { flex: 1; padding: 15px; background: var(--bg); color: var(--muted); border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; }
 
         /* Legend */
         .legend {
@@ -1146,6 +1164,19 @@
     </div>
 </div>
 
+<!-- NIGHT WAKEUP POPUP -->
+<div class="night-popup-overlay hidden" id="nightPopupOverlay">
+    <div class="night-popup">
+        <div class="night-popup-icon">☀️</div>
+        <div class="night-popup-title">Czy wstałeś z łóżka?</div>
+        <div class="night-popup-sub">Zaznacz jeśli wstałeś/aś z łóżka żeby się wysikać — pomoże to dokładniej policzyć przerwy.</div>
+        <div class="night-popup-btns">
+            <button type="button" class="night-popup-yes" onclick="confirmNightWakeup(true)">☀️ Tak, obudzenie</button>
+            <button type="button" class="night-popup-no"  onclick="confirmNightWakeup(false)">Nie</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ── STATE ──────────────────────────────────────────────────────────────
 const HOURS = Array.from({length: 24}, (_, i) =>
@@ -1534,6 +1565,29 @@ function saveEntry() {
     save();
     render();
     closeModal();
+
+    // Ask about night wakeup: urine entry, no night flag, nighttime hours (21-07)
+    const isNight = selHour >= 21 || selHour <= 7;
+    if (!editing && urine > 0 && !selNight && isNight) {
+        lastSavedId = state.days[targetDay][state.days[targetDay].length - 1].id;
+        lastSavedDay = targetDay;
+        document.getElementById('nightPopupOverlay').classList.remove('hidden');
+    }
+}
+
+let lastSavedId = null;
+let lastSavedDay = null;
+
+function confirmNightWakeup(yes) {
+    document.getElementById('nightPopupOverlay').classList.add('hidden');
+    if (yes && lastSavedId !== null) {
+        const day = state.days[lastSavedDay];
+        const idx = day.findIndex(e => e.id === lastSavedId);
+        if (idx !== -1) { day[idx] = { ...day[idx], night: 'obudzenie' }; }
+        save();
+        render();
+    }
+    lastSavedId = null; lastSavedDay = null;
 }
 
 function deleteEntry(id) {
