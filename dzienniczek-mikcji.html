@@ -1284,29 +1284,34 @@ function render() {
         ? Math.round(urineOnly.reduce((s,e) => s+(e.urine|0), 0) / urineOnly.length)
         : null;
 
-    // Build sleep intervals: sen → obudzenie pairs
-    const sleepIntervals = [];
-    let sleepStart = null;
-    allSorted.filter(e => e.night === 'sen' || e.night === 'obudzenie').forEach(e => {
-        if (e.night === 'sen') { sleepStart = getMin(e); }
-        else if (e.night === 'obudzenie' && sleepStart !== null) {
-            sleepIntervals.push([sleepStart, getMin(e)]);
-            sleepStart = null;
+    // Awake windows: obudzenie → sen (or now if still awake)
+    const nowMin = (() => {
+        const n = new Date();
+        const base = showAllDays
+            ? Math.max(...state.days.map((d,i) => d.length > 0 ? i : 0)) * 1440
+            : curDay * 1440;
+        return base + n.getHours() * 60 + n.getMinutes();
+    })();
+    const awakeWindows = [];
+    let wakeTime = null;
+    allSorted.forEach(e => {
+        if (e.night === 'obudzenie') wakeTime = getMin(e);
+        else if (e.night === 'sen') {
+            if (wakeTime !== null) awakeWindows.push([wakeTime, getMin(e)]);
+            wakeTime = null;
         }
     });
-    // Brak obudzenia: użyj pierwszej mikcji po zaśnięciu jako implicite koniec snu
-    if (sleepStart !== null) {
-        const implicitWake = urineOnly.map(getMin).find(t => t > sleepStart);
-        sleepIntervals.push([sleepStart, implicitWake ?? sleepStart + 720]);
-    }
+    if (wakeTime !== null) awakeWindows.push([wakeTime, nowMin]);
 
-    const gaps = [];
-    for (let i = 1; i < urineOnly.length; i++) {
-        const t1 = getMin(urineOnly[i-1]), t2 = getMin(urineOnly[i]);
-        const inSleep = sleepIntervals.some(([s, w]) => s < t2 && w > t1);
-        if (!inSleep) gaps.push(t2 - t1);
-    }
-    const avgGap = gaps.length > 0 ? Math.round(gaps.reduce((s,g)=>s+g,0)/gaps.length) : null;
+    const totalAwake = awakeWindows.reduce((s, [w, sl]) => s + Math.max(0, sl - w), 0);
+    const urineInAwake = urineOnly.filter(e => {
+        const t = getMin(e);
+        return awakeWindows.some(([w, sl]) => t >= w && t <= sl);
+    }).length;
+
+    const avgGap = (totalAwake > 0 && urineInAwake > 0)
+        ? Math.round(totalAwake / urineInAwake)
+        : null;
 
     document.getElementById('metricAvgUrine').textContent = avgUrine !== null ? `${avgUrine}` : '–';
     document.getElementById('metricAvgGap').textContent = avgGap !== null
