@@ -149,6 +149,23 @@
         .summary-value { font-size: 32px; font-weight: 900; line-height: 1; }
         .summary-unit { font-size: 11px; opacity: 0.8; margin-top: 6px; font-weight: 600; }
         .summary-sub { font-size: 10px; opacity: 0.75; margin-top: 5px; line-height: 1.5; font-weight: 600; }
+        .metrics-card {
+            margin: 0 18px 12px;
+            background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%);
+            border-radius: 16px;
+            padding: 14px 20px;
+            color: white;
+            box-shadow: 0 4px 16px rgba(37,99,235,0.2);
+        }
+        .metrics-row { display: flex; gap: 10px; }
+        .metric-item {
+            flex: 1; text-align: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 12px 8px;
+        }
+        .metric-value { font-size: 24px; font-weight: 900; line-height: 1; }
+        .metric-unit { font-size: 10px; opacity: 0.8; margin-top: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 
         /* ── ENTRIES ── */
         .entries-section { padding: 0 18px 100px; }
@@ -936,6 +953,20 @@
         </div>
     </div>
 
+    <!-- METRICS -->
+    <div class="metrics-card">
+        <div class="metrics-row">
+            <div class="metric-item">
+                <div class="metric-value" id="metricAvgUrine">–</div>
+                <div class="metric-unit">śr. ml mikcji</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-value" id="metricAvgGap">–</div>
+                <div class="metric-unit">śr. przerwa</div>
+            </div>
+        </div>
+    </div>
+
     <!-- ENTRIES -->
     <div class="entries-section">
         <div class="section-header">
@@ -1212,6 +1243,28 @@ function render() {
     const mikcjaCount = entries.filter(e => (e.urine|0) > 0).length;
     const drinkCount  = entries.filter(e => (e.fluids|0) > 0).length;
     document.getElementById('sumBreakdown').innerHTML = `${mikcjaCount} mikcji<br>${drinkCount} napojów`;
+
+    // Metrics
+    const getMin = e => (e._dayIdx||0)*1440 + e.hour*60 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : 30);
+    const allSorted = [...allEntries].sort((a,b) => getMin(a) - getMin(b));
+    const urineOnly = allSorted.filter(e => (e.urine|0) > 0);
+    const sleepTimes = allSorted.filter(e => e.night === 'sen').map(getMin);
+
+    const avgUrine = urineOnly.length > 0
+        ? Math.round(urineOnly.reduce((s,e) => s+(e.urine|0), 0) / urineOnly.length)
+        : null;
+
+    const gaps = [];
+    for (let i = 1; i < urineOnly.length; i++) {
+        const t1 = getMin(urineOnly[i-1]), t2 = getMin(urineOnly[i]);
+        if (!sleepTimes.some(ts => ts > t1 && ts < t2)) gaps.push(t2 - t1);
+    }
+    const avgGap = gaps.length > 0 ? Math.round(gaps.reduce((s,g)=>s+g,0)/gaps.length) : null;
+
+    document.getElementById('metricAvgUrine').textContent = avgUrine !== null ? `${avgUrine}` : '–';
+    document.getElementById('metricAvgGap').textContent = avgGap !== null
+        ? (avgGap >= 60 ? `${Math.floor(avgGap/60)}h${avgGap%60 ? ' '+avgGap%60+'min' : ''}` : `${avgGap}min`)
+        : '–';
 
     updateChart();
 
