@@ -1277,6 +1277,9 @@ function render() {
 
     // Metrics
     const getMin = e => (e._dayIdx||0)*1440 + e.hour*60 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : 30);
+    // For window boundaries: obudzenie → start of hour, sen → end of hour
+    const getMinStart = e => (e._dayIdx||0)*1440 + e.hour*60 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : 0);
+    const getMinEnd   = e => (e._dayIdx||0)*1440 + e.hour*60 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : 59);
     const allSorted = [...allEntries].sort((a,b) => getMin(a) - getMin(b));
     const urineOnly = allSorted.filter(e => (e.urine|0) > 0);
 
@@ -1295,9 +1298,9 @@ function render() {
     const awakeWindows = [];
     let wakeTime = null;
     allSorted.forEach(e => {
-        if (e.night === 'obudzenie') wakeTime = getMin(e);
+        if (e.night === 'obudzenie') wakeTime = getMinStart(e);
         else if (e.night === 'sen') {
-            if (wakeTime !== null) awakeWindows.push([wakeTime, getMin(e)]);
+            if (wakeTime !== null) awakeWindows.push([wakeTime, getMinEnd(e)]);
             wakeTime = null;
         }
     });
