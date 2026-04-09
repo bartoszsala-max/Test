@@ -1303,6 +1303,11 @@ function render() {
     });
     if (wakeTime !== null) awakeWindows.push([wakeTime, nowMin]);
 
+    // Fallback: brak markerów nocnych → okno od pierwszej do ostatniej mikcji (lub teraz)
+    if (awakeWindows.length === 0 && urineOnly.length >= 1) {
+        awakeWindows.push([getMin(urineOnly[0]), nowMin]);
+    }
+
     const totalAwake = awakeWindows.reduce((s, [w, sl]) => s + Math.max(0, sl - w), 0);
     const urineInAwake = urineOnly.filter(e => {
         const t = getMin(e);
