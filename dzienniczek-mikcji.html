@@ -1276,9 +1276,10 @@ function render() {
     document.getElementById('sumBreakdown').innerHTML = `${mikcjaCount} mikcji<br>${drinkCount} napojów`;
 
     // Metrics helpers — continuous timeline: Day N = minutes [N*1440 … N*1440+1439]
-    const getMin      = e => (e._dayIdx||0)*1440 + e.hour*60 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : 30);
-    const getMinStart = e => (e._dayIdx||0)*1440 + e.hour*60 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : 0);
-    const getMinEnd   = e => (e._dayIdx||0)*1440 + e.hour*60 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : 59);
+    // e.hour is the hour slot; e.time is precise "HH:MM" — use one or the other, never both
+    const getMin      = e => (e._dayIdx||0)*1440 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : e.hour*60 + 30);
+    const getMinStart = e => (e._dayIdx||0)*1440 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : e.hour*60);
+    const getMinEnd   = e => (e._dayIdx||0)*1440 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : e.hour*60 + 59);
 
     // Single-day: Day X + Day X+1 (sen may cross midnight); All-days: all 3 days
     const metricDays = showAllDays
@@ -2027,7 +2028,10 @@ async function loadFromCloud() {
                 if (!state.dayDates) state.dayDates = [null, null, null];
                 while (state.dayDates.length < 3) state.dayDates.push(null);
                 localStorage.setItem('mikcja_v1', JSON.stringify(state));
-                
+                // Auto-select last day with data
+                for (let i = 2; i >= 0; i--) {
+                    if ((state.days[i]||[]).length > 0) { curDay = i; break; }
+                }
                 render();
             }
         } else {
@@ -2044,7 +2048,10 @@ async function loadFromCloud() {
                             if (!state.dayDates) state.dayDates = [null, null, null];
                             while (state.dayDates.length < 3) state.dayDates.push(null);
                             await fbDb.ref(`users/${currentUser.uid}/mikcja`).set(state);
-                            
+                            // Auto-select last day with data
+                            for (let i = 2; i >= 0; i--) {
+                                if ((state.days[i]||[]).length > 0) { curDay = i; break; }
+                            }
                             render();
                         }
                     }
