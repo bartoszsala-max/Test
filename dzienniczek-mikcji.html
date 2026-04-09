@@ -1280,9 +1280,7 @@ function render() {
     const getMinStart = e => (e._dayIdx||0)*1440 + e.hour*60 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : 0);
     const getMinEnd   = e => (e._dayIdx||0)*1440 + e.hour*60 + (e.time ? +e.time.split(':')[0]*60 + +e.time.split(':')[1] : 59);
 
-    // Pool of entries used for window building and urine counting
-    // Single-day: Day X + Day X+1 (sen can cross into next day)
-    // All-days: full 3-day timeline
+    // Single-day: Day X + Day X+1 (sen may cross midnight); All-days: all 3 days
     const metricDays = showAllDays
         ? [0, 1, 2]
         : [curDay, curDay + 1].filter(i => i < 3);
@@ -1291,7 +1289,6 @@ function render() {
         .flatMap(i => (state.days[i] || []).map(e => ({ ...e, _dayIdx: i })))
         .sort((a,b) => getMin(a) - getMin(b));
 
-    // For urine avg and counting: only Day X entries in single-day, all in all-days
     const urinePool = showAllDays
         ? metricEntries.filter(e => (e.urine|0) > 0)
         : metricEntries.filter(e => e._dayIdx === curDay && (e.urine|0) > 0);
@@ -1300,9 +1297,10 @@ function render() {
         ? Math.round(urinePool.reduce((s,e) => s+(e.urine|0), 0) / urinePool.length)
         : null;
 
-    // Build awake windows from metricEntries
-    const lastDayIdx = metricDays[metricDays.length - 1];
-    const nowMin = lastDayIdx * 1440 + new Date().getHours() * 60 + new Date().getMinutes();
+    // Build awake windows
+    // "Now" = current clock time placed on the correct diary-day index
+    const nowDayIdx = showAllDays ? 2 : curDay;
+    const nowMin = nowDayIdx * 1440 + new Date().getHours() * 60 + new Date().getMinutes();
     const awakeWindows = [];
     let wakeTime = null;
     metricEntries.forEach(e => {
@@ -1312,7 +1310,10 @@ function render() {
             wakeTime = null;
         }
     });
-    if (wakeTime !== null) awakeWindows.push([wakeTime, nowMin]);
+    // Open window (woke up, not yet asleep): ends at "now"
+    if (wakeTime !== null)
+        awakeWindows.push([wakeTime, Math.max(wakeTime, nowMin)]);
+    // Fallback: no sleep markers → first urination to now
     if (awakeWindows.length === 0 && urinePool.length >= 1)
         awakeWindows.push([getMin(urinePool[0]), nowMin]);
 
