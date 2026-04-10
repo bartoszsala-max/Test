@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Literary color palette */
+  --color-ivory: #FEFCF3;
+  --color-charcoal: #1A1A1A;
+  --color-sienna: #C25B28;
+  --color-teal: #1B6B6D;
+  --color-gold: #D4A853;
+
+  /* Fonts */
+  --font-serif: "Lora", "Georgia", serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+:root {
+  --bg: #FEFCF3;
+  --fg: #1A1A1A;
+}
+
+.dark {
+  --bg: #1A1A1A;
+  --fg: #E8E0D4;
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Typography ───────────────────────────────────────────────────────────── */
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #C25B2840;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C25B2880;
+}
+
+/* ── Book card hover ──────────────────────────────────────────────────────── */
+.book-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.book-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(194, 91, 40, 0.12);
+}
+
+/* ── Skeleton loader ──────────────────────────────────────────────────────── */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.skeleton {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  background-color: #1A1A1A14;
+  border-radius: 4px;
+}
+.dark .skeleton {
+  background-color: #E8E0D414;
+}
+
+/* ── Star rating ──────────────────────────────────────────────────────────── */
+.star-gold {
+  color: #D4A853;
+}
+
+/* ── AI streaming cursor ─────────────────────────────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.ai-cursor::after {
+  content: "▋";
+  animation: blink 0.8s infinite;
+  color: #C25B28;
+  margin-left: 1px;
+}
