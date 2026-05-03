@@ -2028,11 +2028,12 @@ async function loadFromCloud() {
                 if (!state.dayDates) state.dayDates = [null, null, null];
                 while (state.dayDates.length < 3) state.dayDates.push(null);
                 localStorage.setItem('mikcja_v1', JSON.stringify(state));
-                // Auto-select last day with data
+                // Open on the last day that has entries
+                let autoDay = 0;
                 for (let i = 2; i >= 0; i--) {
-                    if ((state.days[i]||[]).length > 0) { curDay = i; break; }
+                    if ((state.days[i]||[]).length > 0) { autoDay = i; break; }
                 }
-                render();
+                selectDay(autoDay + 1);
             }
         } else {
             // Chmura pusta — sprawdź czy jest coś w localStorage i wyślij do chmury
@@ -2048,11 +2049,12 @@ async function loadFromCloud() {
                             if (!state.dayDates) state.dayDates = [null, null, null];
                             while (state.dayDates.length < 3) state.dayDates.push(null);
                             await fbDb.ref(`users/${currentUser.uid}/mikcja`).set(state);
-                            // Auto-select last day with data
+                            // Open on the last day that has entries
+                            let autoDay = 0;
                             for (let i = 2; i >= 0; i--) {
-                                if ((state.days[i]||[]).length > 0) { curDay = i; break; }
+                                if ((state.days[i]||[]).length > 0) { autoDay = i; break; }
                             }
-                            render();
+                            selectDay(autoDay + 1);
                         }
                     }
                 } catch(e2) {}
